@@ -7,7 +7,7 @@ close all
 
 taskA_number = 1;
 taskB_number = 2;
-subject = 10;
+subject = 2;
 
 data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task' num2str(taskA_number)]);
 data_dir_taskA = data_dir_taskA(~cellfun(@(x) any(regexp(x, '^\.+$')), {data_dir_taskA.name})); % avoid '.' and '..'
@@ -21,8 +21,8 @@ prob_dist_phys_taskA = [];
 prob_dist_bino_taskB = [];
 prob_dist_phys_taskB = [];
 
-% for subj = 1:numel(data_dir_taskA)
-for subj = subject:subject
+for subj = 1:numel(data_dir_taskA)
+% for subj = subject:subject
     close all
     binoriv_timing_taskA = [];
     phys_timing_taskA = [];
@@ -74,14 +74,93 @@ for subj = subject:subject
 %                         switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);;
 %                         break
 %                     end
-                    if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
-                        switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
-                        continue
-                    elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
-                        switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
-                        continue
+                    if taskA_number == 1
+                        if data_taskA.trial(trl-1).stimulus == 2 || data_taskA.trial(trl-1).stimulus == 3 || data_taskA.trial(trl-1).stimulus == 4
+                            last_repo_red = find(data_taskA.trial(trl-1).repo_red==1);
+                            last_repo_blue = find(data_taskA.trial(trl-1).repo_blue==1);
+                            if isempty(last_repo_red) && isempty(last_repo_blue)
+                                last_repo = 'NaN';
+                            elseif isempty(last_repo_red) && ~isempty(last_repo_blue)
+                                last_repo = 'blue';
+                            elseif ~isempty(last_repo_red) && isempty(last_repo_blue)
+                                last_repo = 'red';
+                            else
+                                if last_repo_red(end) > last_repo_blue(end); last_repo='red'; elseif last_repo_red(end) < last_repo_blue(end); last_repo='blue'; end
+                            end
+                            if strcmp(last_repo, 'red')
+                                if data_taskA.trial(trl).repo_blue(sample) == 1
+                                    switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                    if switch_timing <= 5
+                                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                    end
+                                    break
+                                end
+                            elseif strcmp(last_repo, 'blue')
+                                if data_taskA.trial(trl).repo_red(sample) == 1
+                                    switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                    if switch_timing <= 5
+                                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                    end
+                                    break
+                                end
+                            else
+                                if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
+                                    switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                    if switch_timing <= 5
+                                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                    end
+                                    break
+                                elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
+                                    switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                    if switch_timing <= 5
+                                        binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                    end
+                                    break
+                                end
+                            end
+                            
+%                             if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0                                
+%                                 switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+%                                 if switch_timing <= 5
+%                                     phys_timing_taskA = [phys_timing_taskA switch_timing];
+%                                 end
+%                                 break
+%                             elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
+%                                 switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+%                                 if switch_timing <= 5
+%                                     phys_timing_taskA = [phys_timing_taskA switch_timing];
+%                                 end
+%                                 break
+%                             end
+                        elseif data_taskA.trial(trl-1).stimulus == 1
+                            if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                end
+                                break
+                            elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                                end
+                                break
+                            end
+                        end
+                    else
+                        if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
+                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                            if switch_timing <= 5
+                                binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                            end
+                            break
+                        elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
+                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                            if switch_timing <= 5
+                                binoriv_timing_taskA = [binoriv_timing_taskA switch_timing];
+                            end
+                            break
+                        end
                     end
                 end            
             % Phys
@@ -95,14 +174,34 @@ for subj = subject:subject
     %                         switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);;
     %                         break
     %                     end
-                        if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-                            phys_timing_taskA = [phys_timing_taskA switch_timing];
-                            continue
-                        elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-                            phys_timing_taskA = [phys_timing_taskA switch_timing];
-                            continue
+                        if taskA_number == 1
+                            if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0 && data_taskA.trial(trl).stimulus == 2 && data_taskA.trial(trl-1).stimulus ~= 2
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    phys_timing_taskA = [phys_timing_taskA switch_timing];
+                                end
+                                break
+                            elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0 && data_taskA.trial(trl).stimulus == 3 && data_taskA.trial(trl-1).stimulus ~= 3
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    phys_timing_taskA = [phys_timing_taskA switch_timing];
+                                end
+                                break
+                            end
+                        else
+                            if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    phys_timing_taskA = [phys_timing_taskA switch_timing];
+                                end
+                                break
+                            elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
+                                switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
+                                if switch_timing <= 5
+                                    phys_timing_taskA = [phys_timing_taskA switch_timing];
+                                end
+                                break
+                            end
                         end
                     end
 %                 end
@@ -128,12 +227,16 @@ for subj = subject:subject
 %                     end
                 if data_taskB.trial(trl).repo_red(sample) == 1 && data_taskB.trial(trl).repo_red(sample+1) == 0
                     switch_timing = data_taskB.trial(trl).tSample_from_time_start(sample) - data_taskB.trial(trl).tSample_from_time_start(1);
-                    binoriv_timing_taskB = [binoriv_timing_taskB switch_timing];
-                    continue
+                    if switch_timing <= 5
+                        binoriv_timing_taskB = [binoriv_timing_taskB switch_timing];
+                    end
+                    break
                 elseif data_taskB.trial(trl).repo_blue(sample) == 1 && data_taskB.trial(trl).repo_blue(sample+1) == 0
                     switch_timing = data_taskB.trial(trl).tSample_from_time_start(sample) - data_taskB.trial(trl).tSample_from_time_start(1);
-                    binoriv_timing_taskB = [binoriv_timing_taskB switch_timing];
-                    continue
+                    if switch_timing <= 5
+                        binoriv_timing_taskB = [binoriv_timing_taskB switch_timing];
+                    end
+                    break
                 end
             end            
         % Phys
@@ -149,48 +252,56 @@ for subj = subject:subject
 %                     end
                     if data_taskB.trial(trl).repo_red(sample) == 1 && data_taskB.trial(trl).repo_red(sample+1) == 0
                         switch_timing = data_taskB.trial(trl).tSample_from_time_start(sample) - data_taskB.trial(trl).tSample_from_time_start(1);
-                        phys_timing_taskB = [phys_timing_taskB switch_timing];
-                        continue
+                        if switch_timing <= 5
+                            phys_timing_taskB = [phys_timing_taskB switch_timing];
+                        end
+                        break
                     elseif data_taskB.trial(trl).repo_blue(sample) == 1 && data_taskB.trial(trl).repo_blue(sample+1) == 0
                         switch_timing = data_taskB.trial(trl).tSample_from_time_start(sample) - data_taskB.trial(trl).tSample_from_time_start(1);
-                        phys_timing_taskB = [phys_timing_taskB switch_timing];
-                        continue
+                        if switch_timing <= 5
+                            phys_timing_taskB = [phys_timing_taskB switch_timing];
+                        end
+                        break
                     end
                 end
 %             end
         end
     end
     
-    % Percept switch prob. in BinoRiv cond. [all trials]
+    % Percept switch prob. in BinoRiv cond. 
     figure;
 %     histogram(binoriv_timing_taskA,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
     histogram(binoriv_timing_taskA, 'Normalization', 'probability', 'NumBins', 20);
     [prob_bino_taskA, edges] = histcounts(binoriv_timing_taskA, 10, 'Normalization', 'probability');
     prob_dist_bino_taskA = [prob_dist_bino_taskA prob_bino_taskA'];
+    xline(mean(binoriv_timing_taskA),'-',{'Mean'})
+    xline(median(binoriv_timing_taskA),'--',{'Median'})
     xlim([0 5])
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
     ylabel('Probability');
     title(['Probability Distribution of task ' num2str(taskA_number)]);
-%     filename = [subj_fig_dir '/Switch_prob_bino.png'];
-%     saveas(gcf,filename)
-%     filename = [subj_fig_dir '/Switch_prob_bino.fig'];
-%     saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_bino_' num2str(taskA_number) '.png'];
+    saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_bino_' num2str(taskA_number) '.fig'];
+    saveas(gcf,filename)
 
     figure;
 %     histogram(binoriv_timing_taskB,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
     histogram(binoriv_timing_taskB, 'Normalization', 'probability', 'NumBins', 20);
     [prob_bino_taskB, edges] = histcounts(binoriv_timing_taskB, 10, 'Normalization', 'probability');
     prob_dist_bino_taskB = [prob_dist_bino_taskB, prob_bino_taskB'];
+    xline(mean(binoriv_timing_taskB),'-',{'Mean'})
+    xline(median(binoriv_timing_taskB),'--',{'Median'})
     xlim([0 5])
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
     ylabel('Probability');
     title(['Probability Distribution of task ' num2str(taskB_number)]);
-%     filename = [subj_fig_dir '/Switch_prob_bino_FPcentre.png'];
-%     saveas(gcf,filename)
-%     filename = [subj_fig_dir '/Switch_prob_bino_FPcentre.fig'];
-%     saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_bino_' num2str(taskB_number) '.png'];
+    saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_bino_' num2str(taskB_number) '.fig'];
+    saveas(gcf,filename)
     
     % stats test
     [h, p_ks, ksstat] = kstest2(binoriv_timing_taskA', binoriv_timing_taskB');
@@ -212,10 +323,10 @@ for subj = subject:subject
     xlabel('Data values');
     ylabel('Probability density');
     title(['Comparison of Two Distributions: p=' num2str(p_ks)]);
-%     filename = [subj_fig_dir '/Switch_prob_density_FPeffect.png'];
-%     saveas(gcf,filename)
-%     filename = [subj_fig_dir '/Switch_prob_density_FPeffect.fig'];
-%     saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_density_' num2str(taskA_number) 'v' num2str(taskB_number) '.png'];
+    saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_density_' num2str(taskA_number) 'v' num2str(taskB_number) '.fig'];
+    saveas(gcf,filename)
     
     % Create Q-Q plot with line of best fit
 %     figure;
@@ -224,6 +335,46 @@ for subj = subject:subject
 %     saveas(gcf,filename)
 %     filename = [subj_fig_dir '/Switch_prob_QQ_FPeffect.fig'];
 %     saveas(gcf,filename)
+
+    % Percept switch prob. in both cond. 
+    % task A
+    figure;
+%     histogram(binoriv_timing_taskA,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+    histogram(binoriv_timing_taskA, 'Normalization', 'probability', 'FaceAlpha', 0.5, 'NumBins', 20); hold on
+    histogram(phys_timing_taskA, 'Normalization', 'probability', 'FaceAlpha', 0.5, 'NumBins', 20);
+    xline(mean(binoriv_timing_taskA),'-',{'Binoriv mean'})
+    xline(median(binoriv_timing_taskA),'--',{'Binoriv median'})
+    xline(mean(phys_timing_taskA),'-',{'Phys mean'})
+    xline(median(phys_timing_taskA),'--',{'Phys median'})
+    xlim([0 5])
+    [p_mw, h, mwstat] = ranksum(binoriv_timing_taskA,phys_timing_taskA);
+    xlabel('Time from trial onset [s]')
+    ylabel('Probability');
+    title(['Probability Distribution of task ' num2str(taskA_number) ', p-mw=' num2str(p_mw)]);
+    filename = [subj_fig_dir '/Switch_prob_comp_' num2str(taskA_number) '.png'];
+    saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_comp_' num2str(taskA_number) '.fig'];
+    saveas(gcf,filename)
+    
+    % task B
+    figure;
+%     histogram(binoriv_timing_taskA,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+    histogram(binoriv_timing_taskB, 'Normalization', 'probability', 'FaceAlpha', 0.5, 'NumBins', 20); hold on
+    histogram(phys_timing_taskB, 'Normalization', 'probability', 'FaceAlpha', 0.5, 'NumBins', 20);
+    xline(mean(binoriv_timing_taskB),'-',{'Binoriv mean'})
+    xline(median(binoriv_timing_taskB),'--',{'Binoriv median'})
+    xline(mean(phys_timing_taskB),'-',{'Phys mean'})
+    xline(median(phys_timing_taskB),'--',{'Phys median'})
+    xlim([0 5])
+    [p_mw, h, mwstat] = ranksum(binoriv_timing_taskB,phys_timing_taskB);
+    xlabel('Time from trial onset [s]')
+    ylabel('Probability');
+    title(['Probability Distribution of task ' num2str(taskB_number) ', p-mw=' num2str(p_mw)]);
+    filename = [subj_fig_dir '/Switch_prob_comp_' num2str(taskB_number) '.png'];
+    saveas(gcf,filename)
+    filename = [subj_fig_dir '/Switch_prob_comp_' num2str(taskB_number) '.fig'];
+    saveas(gcf,filename)
+
 
 end
 
