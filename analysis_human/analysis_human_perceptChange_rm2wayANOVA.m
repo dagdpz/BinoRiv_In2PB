@@ -135,6 +135,32 @@ for subj = 1:numel(data_dir_task1)
             
 end
 
+%% Outlier exclusion 
+% exclude subjects who have a RT median of between-subject mean + 3*std or more in task 2
+exclusion = true;
+if exclusion
+    indicesToDelete = find([preprocessedData_interaction.Task]~=2 | [preprocessedData_interaction.Condition]==0);
+    preprocessedData_task2 = preprocessedData_interaction;
+    preprocessedData_task2(indicesToDelete) = [];
+    preprocessedData_task2 = struct2table(preprocessedData_task2);
+    
+    between_subj_ins_mean = mean(preprocessedData_task2.PCT_ins_median);
+    between_subj_rel_mean = mean(preprocessedData_task2.PCT_rel_median);
+    between_subj_ins_std = std(preprocessedData_task2.PCT_ins_median);
+    between_subj_rel_std  = std(preprocessedData_task2.PCT_rel_median);
+    threshold_pos_ins = between_subj_ins_mean + 3*between_subj_ins_std;
+    threshold_neg_ins = between_subj_ins_mean - 3*between_subj_ins_std;
+    threshold_pos_rel = between_subj_rel_mean + 3*between_subj_rel_std;
+    threshold_neg_rel = between_subj_rel_mean - 3*between_subj_rel_std;
+    
+    outlierSubj_ID = preprocessedData_task2.SubjectID(find(preprocessedData_task2.PCT_ins_median>threshold_pos_ins | preprocessedData_task2.PCT_ins_median<threshold_neg_ins));
+    preprocessedData_switchEffect(find([preprocessedData_switchEffect.SubjectID]==outlierSubj_ID)) = [];
+    preprocessedData_FPjEffect(find([preprocessedData_FPjEffect.SubjectID]==outlierSubj_ID)) = [];
+    preprocessedData_SacEffect(find([preprocessedData_SacEffect.SubjectID]==outlierSubj_ID)) = [];
+    preprocessedData_interaction(find([preprocessedData_interaction.SubjectID]==outlierSubj_ID)) = [];
+end
+
+
 %% Two-way repeated-measures ANOVA
 % data cleaning
 preprocessedData_switchEffect_table=struct2table(preprocessedData_switchEffect);
