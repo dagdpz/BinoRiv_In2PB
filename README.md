@@ -10,10 +10,10 @@
     - make_binocular_rivalry_stimuli_monkey_main  
 ### Condition file with specifying 'human'  
     - conditions\human\combined_condition_file_human  (calibration)
-    - conditions\human\combined_condition_file_continuous_binoriv  (task)  
+    - conditions\human\combined_condition_file_continuous_binoriv  (main task)  
         - Choose the task type VAR.binoriv_taskType [1 4]  
 ### Main  
     - monkeypsych_dev_binoriv  
 ### Chopping raw data files  
     - chopping_trial_binoriv (for data before 2023-08-07_15)  
-    -   chopping_trial_binoriv_humanExpIntegrated (for data from 2023-08-07_15)  
+    - chopping_trial_binoriv_humanExpIntegrated (for data from 2023-08-07_15)  
