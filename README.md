@@ -1,4 +1,4 @@
-# Monkeypsych  
+# monkeypsych_IN2PB  
 ### Check individual contrast 
     - human_colour_check  
 ### Stimuli making  
