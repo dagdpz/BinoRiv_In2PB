@@ -5,7 +5,7 @@ function analysis_human_scores_freq_duration()
 clear all
 close all
 
-task_number = 4;
+task_number = 2;
 subject = 1;
 
 data_dir = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task' num2str(task_number)]);
@@ -17,8 +17,8 @@ all_trials = 0;
 fig_dir = ['figures'];
 mkdir(fig_dir)
 
-for subj = 1:numel(data_dir)
-% for subj = subject:subject
+% for subj = 1:numel(data_dir)
+for subj = subject:subject
 
     duration_binoriv = 0;
     switch_red = 0;

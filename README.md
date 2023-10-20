@@ -1,5 +1,5 @@
 # monkeypsych_IN2PB  
-### Check individual contrast 
+### Check individual contrast balance
     - human_colour_check  
 ### Stimuli making  
     - make_binocular_rivalry_define_contrasts  

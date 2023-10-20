@@ -5,8 +5,8 @@ function analysis_human_PCTdist_single()
 clear all
 close all
 
-taskA_number = 1;
-subject = 1;
+taskA_number = 4;
+% subject = 1;
 
 data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task' num2str(taskA_number)]);
 % data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\JanisHesse\Binocular_Rivalry_Code_Ryo\Analysis\data_monkeypsychTest/task1']);
@@ -429,11 +429,11 @@ for subj = 1:numel(data_dir_taskA)
     bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
     xline(mean(binoriv_timing_taskA_ins),'-',{'Mean'})
     xline(median(binoriv_timing_taskA_ins),'--',{'Median'})
-    if taskA_number == 2 || taskA_number == 4
-        xlim([0 5])
-    else
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
         xlim([0 10])
-    end
+%     end
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
 %     ylabel('Probability');
@@ -454,11 +454,11 @@ for subj = 1:numel(data_dir_taskA)
     bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
     xline(mean(phys_timing_taskA_ins),'-',{'Mean'})
     xline(median(phys_timing_taskA_ins),'--',{'Median'})
-    if taskA_number == 2 || taskA_number == 4
-        xlim([0 5])
-    else
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
         xlim([0 10])
-    end
+%     end
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
 %     ylabel('Probability');
@@ -470,7 +470,7 @@ for subj = 1:numel(data_dir_taskA)
         ', Num of blue presented: ' num2str(num_blue_presented),...
         ', Num of red correct: ' num2str(num_red_cong)...
         ', Num of blue correct: ' num2str(num_blue_cong)...
-        ', Success rate: ' num2str(100*(num_red_presented+num_blue_presented)/(num_red_cong+num_blue_cong)) '%']})
+        ', Success rate: ' num2str(100*(num_red_cong+num_blue_cong)/(num_red_presented+num_blue_presented)) '%']})
     filename = [subj_fig_dir '/Switch_prob_phys_ins_' num2str(taskA_number) '.png'];
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_phys_ins_' num2str(taskA_number) '.fig'];
@@ -484,11 +484,11 @@ for subj = 1:numel(data_dir_taskA)
     bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
     xline(mean(binoriv_timing_taskA_rel),'-',{'Mean'})
     xline(median(binoriv_timing_taskA_rel),'--',{'Median'})
-    if taskA_number == 2 || taskA_number == 4
-        xlim([0 5])
-    else
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
         xlim([0 10])
-    end
+%     end
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
 %     ylabel('Probability');
@@ -509,11 +509,11 @@ for subj = 1:numel(data_dir_taskA)
     bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
     xline(mean(phys_timing_taskA_rel),'-',{'Mean'})
     xline(median(phys_timing_taskA_rel),'--',{'Median'})
-    if taskA_number == 2 || taskA_number == 4
-        xlim([0 5])
-    else
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
         xlim([0 10])
-    end
+%     end
 %     ylim([0 1])
     xlabel('Time from trial onset [s]')
 %     ylabel('Probability');
@@ -532,7 +532,7 @@ for subj = 1:numel(data_dir_taskA)
         ', Num of blue presented: ' num2str(num_blue_presented),...
         ', Num of red correct: ' num2str(num_red_cong)...
         ', Num of blue correct: ' num2str(num_blue_cong),...
-        ', Success rate: ' num2str(100*(num_red_presented+num_blue_presented)/(num_red_cong+num_blue_cong)) '%']})
+        ', Success rate: ' num2str(100*(num_red_cong+num_blue_cong)/(num_red_presented+num_blue_presented)) '%']})
     filename = [subj_fig_dir '/Switch_prob_phys_rel_' num2str(taskA_number) '.png'];
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_phys_rel_' num2str(taskA_number) '.fig'];
