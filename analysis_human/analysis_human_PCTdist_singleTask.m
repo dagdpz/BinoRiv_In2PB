@@ -5,9 +5,9 @@ function analysis_human_PCTdist_single()
 clear all
 close all
 
-taskA_number = 2;
+taskA_number = 4;
 subject = 11;
-task_psuedoChopping = true; % Assign pseudo FP positions to task2 with the same random numbers as task1 and task3 to mimic the same reaction time plot scales as task1 and task3
+task_psuedoChopping = false; % Assign pseudo FP positions to task2 with the same random numbers as task1 and task3 to mimic the same reaction time plot scales as task1 and task3
 
 data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task' num2str(taskA_number)]);
 % data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\JanisHesse\Binocular_Rivalry_Code_Ryo\Analysis\data_monkeypsychTest/task1']);
@@ -379,23 +379,47 @@ for subj = 1:numel(data_dir_taskA)
                         end
                     end      
                 % Phys
-                elseif data_taskA.trial(trl).stimulus == 2 || data_taskA.trial(trl).stimulus == 3
-                    for sample = 1:data_taskA.trial(trl).counter-1
-                        if data_taskA.trial(trl).repo_red(sample) == 0 && data_taskA.trial(trl).repo_red(sample+1) == 1
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                phys_timing_taskA_ins = [phys_timing_taskA_ins switch_timing];
-    %                         end
-                            break
-                        elseif data_taskA.trial(trl).repo_blue(sample) == 0 && data_taskA.trial(trl).repo_blue(sample+1) == 1
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                phys_timing_taskA_ins = [phys_timing_taskA_ins switch_timing];
-    %                         end
-                            break
+                elseif data_taskA.trial(trl).stimulus == 2 && data_taskA.trial(trl+1).stimulus ~= 2
+                    for loop = 1:4
+                        if data_taskA.trial(trl-loop).stimulus ~= 2
+                            min_trl = trl-loop + 1;
                         end
                     end
-                end
+                    
+                    percept_change = false;
+                    for cont_trl = min_trl:trl
+                        for sample = 1:data_taskA.trial(cont_trl).counter-1
+                            if data_taskA.trial(cont_trl).repo_red(sample) == 0 && data_taskA.trial(cont_trl).repo_red(sample+1) == 1
+                                switch_timing = data_taskA.trial(cont_trl).tSample_from_time_start(sample) - data_taskA.trial(cont_trl).tSample_from_time_start(1);
+                                phys_timing_taskA_ins = [phys_timing_taskA_ins switch_timing];
+                                percept_change = true;
+                                break
+                            end
+                        end
+                        if percept_change; break; end
+                    end                     
+
+                elseif data_taskA.trial(trl).stimulus == 3 && data_taskA.trial(trl+1).stimulus ~= 3
+                    for loop = 1:4
+                        if data_taskA.trial(trl-loop).stimulus ~= 3
+                            min_trl = trl-loop + 1;
+                        end
+                    end
+                    
+                    percept_change = false;
+                    for cont_trl = min_trl:trl
+                        for sample = 1:data_taskA.trial(cont_trl).counter-1
+                            if data_taskA.trial(cont_trl).repo_blue(sample) == 0 && data_taskA.trial(cont_trl).repo_blue(sample+1) == 1
+                                switch_timing = data_taskA.trial(cont_trl).tSample_from_time_start(sample) - data_taskA.trial(cont_trl).tSample_from_time_start(1);
+                                phys_timing_taskA_ins = [phys_timing_taskA_ins switch_timing];
+                                percept_change = true;
+                                break
+                            end
+                        end
+                        if percept_change; break; end
+                    end
+                    
+                end  
             end
             
              %% Button release
@@ -426,21 +450,44 @@ for subj = 1:numel(data_dir_taskA)
                         end
                     end    
                 % Phys
-                elseif data_taskA.trial(trl).stimulus == 2 || data_taskA.trial(trl).stimulus == 3
-                    for sample = 1:data_taskA.trial(trl).counter-1
-                        if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                phys_timing_taskA_rel = [phys_timing_taskA_rel switch_timing];
-    %                         end
-                            break
-                        elseif data_taskA.trial(trl).repo_blue(sample) == 1 && data_taskA.trial(trl).repo_blue(sample+1) == 0
-                            switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                phys_timing_taskA_rel = [phys_timing_taskA_rel switch_timing];
-    %                         end
-                            break
+                elseif data_taskA.trial(trl).stimulus == 2 && data_taskA.trial(trl+1).stimulus ~= 2
+                    for loop = 1:4
+                        if data_taskA.trial(trl-loop).stimulus ~= 2
+                            min_trl = trl-loop + 1;
                         end
+                    end
+                    
+                    percept_change = false;
+                    for cont_trl = min_trl:trl
+                        for sample = 1:data_taskA.trial(cont_trl).counter-1
+                            if data_taskA.trial(cont_trl).repo_blue(sample) == 1 && data_taskA.trial(cont_trl).repo_blue(sample+1) == 0
+                                switch_timing = data_taskA.trial(cont_trl).tSample_from_time_start(sample) - data_taskA.trial(cont_trl).tSample_from_time_start(1);
+                                phys_timing_taskA_rel = [phys_timing_taskA_rel switch_timing];
+                                percept_change = true;
+                                break
+                            end
+                        end
+                        if percept_change; break; end
+                    end                     
+
+                elseif data_taskA.trial(trl).stimulus == 3 && data_taskA.trial(trl+1).stimulus ~= 3
+                    for loop = 1:4
+                        if data_taskA.trial(trl-loop).stimulus ~= 3
+                            min_trl = trl-loop + 1;
+                        end
+                    end
+                    
+                    percept_change = false;
+                    for cont_trl = min_trl:trl
+                        for sample = 1:data_taskA.trial(cont_trl).counter-1
+                            if data_taskA.trial(cont_trl).repo_red(sample) == 1 && data_taskA.trial(cont_trl).repo_red(sample+1) == 0
+                                switch_timing = data_taskA.trial(cont_trl).tSample_from_time_start(sample) - data_taskA.trial(cont_trl).tSample_from_time_start(1);
+                                phys_timing_taskA_rel = [phys_timing_taskA_rel switch_timing];
+                                percept_change = true;
+                                break
+                            end
+                        end
+                        if percept_change; break; end
                     end
                 end
             end

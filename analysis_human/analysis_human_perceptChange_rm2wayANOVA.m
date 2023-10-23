@@ -569,24 +569,47 @@ elseif task_number == 2 || task_number == 4
                     break
                 end
             end      
-        % Phys
-        elseif data.trial(trl).stimulus == 2 || data.trial(trl).stimulus == 3
-            for sample = 1:data.trial(trl).counter-1
-                if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-%                         end
-                    break
-                elseif data.trial(trl).repo_blue(sample) == 0 && data.trial(trl).repo_blue(sample+1) == 1
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-%                         end
-                    break
+        % Phys 
+        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
+            for loop = 1:4
+                if data.trial(trl-loop).stimulus ~= 2
+                    min_trl = trl-loop + 1;
                 end
             end
-        end
+
+            percept_change = false;
+            for cont_trl = min_trl:trl
+                for sample = 1:data.trial(cont_trl).counter-1
+                    if data.trial(cont_trl).repo_red(sample) == 0 && data.trial(cont_trl).repo_red(sample+1) == 1
+                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
+                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
+                        percept_change = true;
+                        break
+                    end
+                end
+                if percept_change; break; end
+            end                     
+
+        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
+            for loop = 1:4
+                if data.trial(trl-loop).stimulus ~= 3
+                    min_trl = trl-loop + 1;
+                end
+            end
+
+            percept_change = false;
+            for cont_trl = min_trl:trl
+                for sample = 1:data.trial(cont_trl).counter-1
+                    if data.trial(cont_trl).repo_blue(sample) == 0 && data.trial(cont_trl).repo_blue(sample+1) == 1
+                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
+                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
+                        percept_change = true;
+                        break
+                    end
+                end
+                if percept_change; break; end
+            end
+        end    
     end
 
      %% Button release
@@ -613,21 +636,44 @@ elseif task_number == 2 || task_number == 4
                 end
             end    
         % Phys
-        elseif data.trial(trl).stimulus == 2 || data.trial(trl).stimulus == 3
-            for sample = 1:data.trial(trl).counter-1
-                if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-%                         end
-                    break
-                elseif data.trial(trl).repo_blue(sample) == 1 && data.trial(trl).repo_blue(sample+1) == 0
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-%                         end
-                    break
+        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
+            for loop = 1:4
+                if data.trial(trl-loop).stimulus ~= 2
+                    min_trl = trl-loop + 1;
                 end
+            end
+
+            percept_change = false;
+            for cont_trl = min_trl:trl
+                for sample = 1:data.trial(cont_trl).counter-1
+                    if data.trial(cont_trl).repo_blue(sample) == 1 && data.trial(cont_trl).repo_blue(sample+1) == 0
+                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
+                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
+                        percept_change = true;
+                        break
+                    end
+                end
+                if percept_change; break; end
+            end                     
+
+        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
+            for loop = 1:4
+                if data.trial(trl-loop).stimulus ~= 3
+                    min_trl = trl-loop + 1;
+                end
+            end
+
+            percept_change = false;
+            for cont_trl = min_trl:trl
+                for sample = 1:data.trial(cont_trl).counter-1
+                    if data.trial(cont_trl).repo_red(sample) == 1 && data.trial(cont_trl).repo_red(sample+1) == 0
+                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
+                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
+                        percept_change = true;
+                        break
+                    end
+                end
+                if percept_change; break; end
             end
         end
     end
