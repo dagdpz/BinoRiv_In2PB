@@ -22,25 +22,28 @@ for subj = 1:numel(data_dir_task1)
     
     %% Extract timings of perceptual change
     % task 1
+    task_psuedoChopping = false;
     subj_dir_task1 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task1/' data_dir_task1(subj).name '/*.mat']);
     for file = 1:numel(subj_dir_task1)
         data_task1 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task1/' data_dir_task1(subj).name '/' subj_dir_task1(file).name]);
                 
-        [binoriv_timing_task1_ins, phys_timing_task1_ins, binoriv_timing_task1_rel, phys_timing_task1_rel] = extract_buttonPress(1,data_task1);
+        [binoriv_timing_task1_ins, phys_timing_task1_ins, binoriv_timing_task1_rel, phys_timing_task1_rel] = extract_buttonPress(1,data_task1,task_psuedoChopping);
     end
     
     if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name])
         continue
     end
     % task 2
+    task_psuedoChopping = true;
     subj_dir_task2 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name '/*.mat']);
     for file = 1:numel(subj_dir_task2)
         data_task2 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name '/' subj_dir_task2(file).name]);
         
-        [binoriv_timing_task2_ins, phys_timing_task2_ins, binoriv_timing_task2_rel, phys_timing_task2_rel] = extract_buttonPress(2,data_task2);
+        [binoriv_timing_task2_ins, phys_timing_task2_ins, binoriv_timing_task2_rel, phys_timing_task2_rel] = extract_buttonPress(2,data_task2,task_psuedoChopping);
     end
     
     % task 3
+    task_psuedoChopping = false;
     if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task3/' data_dir_task1(subj).name])
         continue
     end
@@ -48,10 +51,11 @@ for subj = 1:numel(data_dir_task1)
     for file = 1:numel(subj_dir_task3)
         data_task3 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task3/' data_dir_task1(subj).name '/' subj_dir_task3(file).name]);
         
-        [binoriv_timing_task3_ins, phys_timing_task3_ins, binoriv_timing_task3_rel, phys_timing_task3_rel] = extract_buttonPress(3,data_task3);
+        [binoriv_timing_task3_ins, phys_timing_task3_ins, binoriv_timing_task3_rel, phys_timing_task3_rel] = extract_buttonPress(3,data_task3,task_psuedoChopping);
     end
     
     % task 4
+    task_psuedoChopping = false;
     if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task4/' data_dir_task1(subj).name])
         continue
     end
@@ -59,7 +63,7 @@ for subj = 1:numel(data_dir_task1)
     for file = 1:numel(subj_dir_task4)
         data_task4 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task4/' data_dir_task1(subj).name '/' subj_dir_task4(file).name]);
         
-        [binoriv_timing_task4_ins, phys_timing_task4_ins, binoriv_timing_task4_rel, phys_timing_task4_rel] = extract_buttonPress(4,data_task4);
+        [binoriv_timing_task4_ins, phys_timing_task4_ins, binoriv_timing_task4_rel, phys_timing_task4_rel] = extract_buttonPress(4,data_task4,task_psuedoChopping);
     end
     
     %% data store
@@ -273,21 +277,39 @@ disp(stats)
 
 
 
-function [binoriv_timing_task_ins, phys_timing_task_ins, binoriv_timing_task_rel, phys_timing_task_rel] = extract_buttonPress(task_number,data)
+function [binoriv_timing_task_ins, phys_timing_task_ins, binoriv_timing_task_rel, phys_timing_task_rel] = extract_buttonPress(task_number,data,task_psuedoChopping)
 binoriv_timing_task_ins = [];
 phys_timing_task_ins = [];
 binoriv_timing_task_rel = [];
 phys_timing_task_rel = [];
-%% Task 1 or 3
-if task_number == 1 || task_number == 3
+%% Task 1 or 3 (or 2)
+if task_number == 2 && task_psuedoChopping
+    for trl = 1:numel(data.trial)
+        fix_loc_label = randi([1 4],1,1);
+        if fix_loc_label == 1
+            data.trial(trl).eye.fix.x.red = -1;
+            data.trial(trl).eye.fix.y.red = -1;
+        elseif fix_loc_label == 2
+            data.trial(trl).eye.fix.x.red = -2;
+            data.trial(trl).eye.fix.y.red = -2;
+        elseif fix_loc_label == 3
+            data.trial(trl).eye.fix.x.red = -3;
+            data.trial(trl).eye.fix.y.red = -3;
+        elseif fix_loc_label == 4
+            data.trial(trl).eye.fix.x.red = -4;
+            data.trial(trl).eye.fix.y.red = -4;
+        end
+    end
+end
+if task_number == 1 || task_number == 3 || task_psuedoChopping
     %% Button insertion
 %         for trl = 1:numel(data.trial)-1
     for trl = 18:numel(data.trial)-1
-        if data.trial(trl-1).stimulus == 1 % remove the first trial from each block
-            continue
-        end
         % Binoriv 
         if data.trial(trl).stimulus == 4
+            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                continue
+            end
             for loop = 1:7
                 if data.trial(trl-loop).stimulus ~= 4
                     for sample = 1:data.trial(trl).counter-1
@@ -404,11 +426,11 @@ if task_number == 1 || task_number == 3
     %% Button release
 %         for trl = 1:numel(data.trial)-1
     for trl = 18:numel(data.trial)-1
-        if data.trial(trl-1).stimulus == 1 % remove the first trial from each block
-            continue
-        end
         % Binoriv 
         if data.trial(trl).stimulus == 4
+            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                continue
+            end
             for loop = 1:7
                 if data.trial(trl-loop).stimulus ~= 4
                     for sample = 1:data.trial(trl).counter-1
@@ -521,14 +543,17 @@ if task_number == 1 || task_number == 3
         end
     end
 elseif task_number == 2 || task_number == 4
+    if task_number == 2 && task_psuedoChopping
+        return
+    end
     %% Button insertion
 %             for trl = 1:numel(data.trial)-1
     for trl = 18:numel(data.trial)-1
-        if data.trial(trl-1).stimulus == 1 % remove the first trial from each block
-            continue
-        end
         % Binoriv 
         if data.trial(trl).stimulus == 4
+            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                continue
+            end
             for sample = 1:data.trial(trl).counter-1
                 if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
                     switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
@@ -567,11 +592,11 @@ elseif task_number == 2 || task_number == 4
      %% Button release
 %             for trl = 1:numel(data.trial)-1
     for trl = 18:numel(data.trial)-1
-        if data.trial(trl-1).stimulus == 1 % remove the first trial from each block
-            continue
-        end
         % Binoriv 
         if data.trial(trl).stimulus == 4
+            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                continue
+            end
             for sample = 1:data.trial(trl).counter-1
                 if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
                     switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);

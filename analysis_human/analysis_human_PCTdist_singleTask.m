@@ -5,8 +5,9 @@ function analysis_human_PCTdist_single()
 clear all
 close all
 
-taskA_number = 4;
-% subject = 1;
+taskA_number = 2;
+subject = 11;
+task_psuedoChopping = true; % Assign pseudo FP positions to task2 with the same random numbers as task1 and task3 to mimic the same reaction time plot scales as task1 and task3
 
 data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task' num2str(taskA_number)]);
 % data_dir_taskA = dir(['Y:\Projects\Binocular_rivalry\JanisHesse\Binocular_Rivalry_Code_Ryo\Analysis\data_monkeypsychTest/task1']);
@@ -20,6 +21,11 @@ prob_dist_bino_taskA = [];
 prob_dist_phys_taskA = [];
 prob_dist_bino_taskB = [];
 prob_dist_phys_taskB = [];
+
+binoriv_timing_taskA_ins_allSubj = [];
+phys_timing_taskA_ins_allSubj = [];
+binoriv_timing_taskA_rel_allSubj = [];
+phys_timing_taskA_rel_allSubj = [];
 
 for subj = 1:numel(data_dir_taskA)
 % for subj = subject:subject
@@ -66,11 +72,7 @@ for subj = 1:numel(data_dir_taskA)
         data_taskA.trial(outlier_trials) = [];
         
         % Calc num of phys stim presented & num of congruence
-        for trl = 18:numel(data_taskA.trial)-1
-            if data_taskA.trial(trl-1).stimulus == 1 % remove the first trial from each block
-                continue
-            end
-            
+        for trl = 18:numel(data_taskA.trial)-1            
             if data_taskA.trial(trl).stimulus == 2 && data_taskA.trial(trl+1).stimulus ~= 2
                 num_red_presented = num_red_presented + 1;
                 if any(find(data_taskA.trial(trl).repo_red == 1))
@@ -83,16 +85,35 @@ for subj = 1:numel(data_dir_taskA)
                 end
             end
         end
-        %% Task 1 or 3
-        if taskA_number == 1 || taskA_number == 3
+        %% Task 1 or 3 (or 2)
+        if taskA_number == 2 && task_psuedoChopping
+            for trl = 1:numel(data_taskA.trial)
+                fix_loc_label = randi([1 4],1,1);
+                if fix_loc_label == 1
+                    data_taskA.trial(trl).eye.fix.x.red = -1;
+                    data_taskA.trial(trl).eye.fix.y.red = -1;
+                elseif fix_loc_label == 2
+                    data_taskA.trial(trl).eye.fix.x.red = -2;
+                    data_taskA.trial(trl).eye.fix.y.red = -2;
+                elseif fix_loc_label == 3
+                    data_taskA.trial(trl).eye.fix.x.red = -3;
+                    data_taskA.trial(trl).eye.fix.y.red = -3;
+                elseif fix_loc_label == 4
+                    data_taskA.trial(trl).eye.fix.x.red = -4;
+                    data_taskA.trial(trl).eye.fix.y.red = -4;
+                end
+            end
+        end
+        
+        if taskA_number == 1 || taskA_number == 3 || task_psuedoChopping
             %% Button insertion
     %         for trl = 1:numel(data_taskA.trial)-1
             for trl = 18:numel(data_taskA.trial)-1
-                if data_taskA.trial(trl-1).stimulus == 1 % remove the first trial from each block
-                    continue
-                end
                 % Binoriv 
                 if data_taskA.trial(trl).stimulus == 4
+                    if data_taskA.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                        continue
+                    end
                     for loop = 1:7
                         if data_taskA.trial(trl-loop).stimulus ~= 4
                             for sample = 1:data_taskA.trial(trl).counter-1
@@ -209,11 +230,11 @@ for subj = 1:numel(data_dir_taskA)
             %% Button release
     %         for trl = 1:numel(data_taskA.trial)-1
             for trl = 18:numel(data_taskA.trial)-1
-                if data_taskA.trial(trl-1).stimulus == 1 % remove the first trial from each block
-                    continue
-                end
                 % Binoriv 
                 if data_taskA.trial(trl).stimulus == 4
+                    if data_taskA.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                        continue
+                    end
                     for loop = 1:7
                         if data_taskA.trial(trl-loop).stimulus ~= 4
                             for sample = 1:data_taskA.trial(trl).counter-1
@@ -326,14 +347,22 @@ for subj = 1:numel(data_dir_taskA)
                 end
             end
         elseif taskA_number == 2 || taskA_number == 4
+            if taskA_number == 2 && task_psuedoChopping
+                continue
+            end
             %% Button insertion
 %             for trl = 1:numel(data_taskA.trial)-1
             for trl = 18:numel(data_taskA.trial)-1
-                if data_taskA.trial(trl-1).stimulus == 1 % remove the first trial from each block
-                    continue
-                end
+                
                 % Binoriv 
                 if data_taskA.trial(trl).stimulus == 4
+                    if data_taskA.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                        continue
+                    end
+                    
+                    if data_taskA.trial(trl-1).stimulus == 1 || data_taskA.trial(trl-1).stimulus == 2 || data_taskA.trial(trl-1).stimulus == 3% remove the first trial from each block
+                        continue
+                    end
                     for sample = 1:data_taskA.trial(trl).counter-1
                         if data_taskA.trial(trl).repo_red(sample) == 0 && data_taskA.trial(trl).repo_red(sample+1) == 1
                             switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
@@ -372,11 +401,15 @@ for subj = 1:numel(data_dir_taskA)
              %% Button release
 %             for trl = 1:numel(data_taskA.trial)-1
             for trl = 18:numel(data_taskA.trial)-1
-                if data_taskA.trial(trl-1).stimulus == 1 % remove the first trial from each block
-                    continue
-                end
                 % Binoriv 
                 if data_taskA.trial(trl).stimulus == 4
+                    if data_taskA.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
+                        continue
+                    end
+                    
+                    if data_taskA.trial(trl-1).stimulus == 1 || data_taskA.trial(trl-1).stimulus == 2 || data_taskA.trial(trl-1).stimulus == 3% remove the first trial from each block
+                        continue
+                    end
                     for sample = 1:data_taskA.trial(trl).counter-1
                         if data_taskA.trial(trl).repo_red(sample) == 1 && data_taskA.trial(trl).repo_red(sample+1) == 0
                             switch_timing = data_taskA.trial(trl).tSample_from_time_start(sample) - data_taskA.trial(trl).tSample_from_time_start(1);
@@ -415,8 +448,14 @@ for subj = 1:numel(data_dir_taskA)
     end
     
     % Define the bin edges
-    if taskA_number == 2 || taskA_number == 4
+    if taskA_number == 4
         binEdges = 0:0.25:5;
+    elseif taskA_number == 2
+        if task_psuedoChopping
+            binEdges = 0:0.25:40;
+        else
+            binEdges = 0:0.25:5;
+        end
     else
         binEdges = 0:0.25:40;
     end
@@ -445,6 +484,7 @@ for subj = 1:numel(data_dir_taskA)
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_bino_ins_' num2str(taskA_number) '.fig'];
     saveas(gcf,filename)
+    binoriv_timing_taskA_ins_allSubj = [binoriv_timing_taskA_ins_allSubj binoriv_timing_taskA_ins];
     
     % Percept switch prob. in Phys cond. insertion
     figure('Position', [100 100 800 600]);
@@ -475,6 +515,7 @@ for subj = 1:numel(data_dir_taskA)
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_phys_ins_' num2str(taskA_number) '.fig'];
     saveas(gcf,filename)
+    phys_timing_taskA_ins_allSubj = [phys_timing_taskA_ins_allSubj phys_timing_taskA_ins];
     
     % Percept switch prob. in BinoRiv cond. release
     figure('Position', [100 100 800 600]);
@@ -500,6 +541,7 @@ for subj = 1:numel(data_dir_taskA)
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_bino_rel_' num2str(taskA_number) '.fig'];
     saveas(gcf,filename)
+    binoriv_timing_taskA_rel_allSubj = [binoriv_timing_taskA_rel_allSubj binoriv_timing_taskA_rel];
     
     % Percept switch prob. in Phys cond. release
     figure('Position', [100 100 800 600]);
@@ -537,6 +579,8 @@ for subj = 1:numel(data_dir_taskA)
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Switch_prob_phys_rel_' num2str(taskA_number) '.fig'];
     saveas(gcf,filename)
+    phys_timing_taskA_rel_allSubj = [phys_timing_taskA_rel_allSubj phys_timing_taskA_rel];
+    
 
     % Percept switch prob. in both cond. 
 %     figure;
@@ -558,4 +602,106 @@ for subj = 1:numel(data_dir_taskA)
 %     saveas(gcf,filename)
 
 end
+
+
+% Percept switch prob. in Binoriv cond. insertion across all subj
+figure('Position', [100 100 800 600]);
+%     histogram(phys_timing_taskA_rel,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+%     histogram(phys_timing_taskA_rel, 'Normalization', 'probability', 'NumBins', 20);
+histData = histcounts(binoriv_timing_taskA_ins_allSubj, binEdges);
+bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
+xline(mean(binoriv_timing_taskA_ins_allSubj),'-',{'Mean'})
+xline(median(binoriv_timing_taskA_ins_allSubj),'--',{'Median'})
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
+    xlim([0 10])
+%     end
+%     ylim([0 1])
+xlabel('Time from trial onset [s]')
+%     ylabel('Probability');
+ylabel('Counts');
+title({['Probability Distribution of task ' num2str(taskA_number)...
+    ', Binoriv insertion'...
+    ', Num of data: ' num2str(numel(binoriv_timing_taskA_ins_allSubj))]})
+filename = [fig_dir '/Switch_prob_binoriv_ins_' num2str(taskA_number) '_allSubj.png'];
+saveas(gcf,filename)
+filename = [fig_dir '/Switch_prob_binoriv_ins_' num2str(taskA_number) '_allSubj.fig'];
+saveas(gcf,filename)
+
+% Percept switch prob. in phys cond. insertion across all subj
+figure('Position', [100 100 800 600]);
+%     histogram(phys_timing_taskA_rel,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+%     histogram(phys_timing_taskA_rel, 'Normalization', 'probability', 'NumBins', 20);
+histData = histcounts(phys_timing_taskA_ins_allSubj, binEdges);
+bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
+xline(mean(phys_timing_taskA_ins_allSubj),'-',{'Mean'})
+xline(median(phys_timing_taskA_ins_allSubj),'--',{'Median'})
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
+    xlim([0 10])
+%     end
+%     ylim([0 1])
+xlabel('Time from trial onset [s]')
+%     ylabel('Probability');
+ylabel('Counts');
+title({['Probability Distribution of task ' num2str(taskA_number)...
+    ', Phys insertion'...
+    ', Num of data: ' num2str(numel(phys_timing_taskA_ins_allSubj))]})
+filename = [fig_dir '/Switch_prob_phys_ins_' num2str(taskA_number) '_allSubj.png'];
+saveas(gcf,filename)
+filename = [fig_dir '/Switch_prob_phys_ins_' num2str(taskA_number) '_allSubj.fig'];
+saveas(gcf,filename)
+
+% Percept switch prob. in binoriv cond. release across all subj
+figure('Position', [100 100 800 600]);
+%     histogram(phys_timing_taskA_rel,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+%     histogram(phys_timing_taskA_rel, 'Normalization', 'probability', 'NumBins', 20);
+histData = histcounts(binoriv_timing_taskA_rel_allSubj, binEdges);
+bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
+xline(mean(binoriv_timing_taskA_rel_allSubj),'-',{'Mean'})
+xline(median(binoriv_timing_taskA_rel_allSubj),'--',{'Median'})
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
+    xlim([0 10])
+%     end
+%     ylim([0 1])
+xlabel('Time from trial onset [s]')
+%     ylabel('Probability');
+ylabel('Counts');
+title({['Probability Distribution of task ' num2str(taskA_number)...
+    ', Binoriv release'...
+    ', Num of data: ' num2str(numel(binoriv_timing_taskA_rel_allSubj))]})
+filename = [fig_dir '/Switch_prob_binoriv_rel_' num2str(taskA_number) '_allSubj.png'];
+saveas(gcf,filename)
+filename = [fig_dir '/Switch_prob_binoriv_rel_' num2str(taskA_number) '_allSubj.fig'];
+saveas(gcf,filename)
+
+% Percept switch prob. in phys cond. release across all subj
+figure('Position', [100 100 800 600]);
+%     histogram(phys_timing_taskA_rel,20, 'FaceAlpha', 0.5, 'FaceColor', [1 0.1 0.1]); hold on
+%     histogram(phys_timing_taskA_rel, 'Normalization', 'probability', 'NumBins', 20);
+histData = histcounts(phys_timing_taskA_rel_allSubj, binEdges);
+bar(binEdges(1:end-1) + diff(binEdges)/2, histData);
+xline(mean(phys_timing_taskA_rel_allSubj),'-',{'Mean'})
+xline(median(phys_timing_taskA_rel_allSubj),'--',{'Median'})
+%     if taskA_number == 2 || taskA_number == 4
+%         xlim([0 5])
+%     else
+    xlim([0 10])
+%     end
+%     ylim([0 1])
+xlabel('Time from trial onset [s]')
+%     ylabel('Probability');
+ylabel('Counts');
+title({['Probability Distribution of task ' num2str(taskA_number)...
+    ', Phys release'...
+    ', Num of data: ' num2str(numel(phys_timing_taskA_rel_allSubj))]})
+filename = [fig_dir '/Switch_prob_phys_rel_' num2str(taskA_number) '_allSubj.png'];
+saveas(gcf,filename)
+filename = [fig_dir '/Switch_prob_phys_rel_' num2str(taskA_number) '_allSubj.fig'];
+saveas(gcf,filename)
+
 

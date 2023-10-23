@@ -17,8 +17,11 @@ all_trials = 0;
 fig_dir = ['figures'];
 mkdir(fig_dir)
 
-% for subj = 1:numel(data_dir)
-for subj = subject:subject
+duration_red_allSubj = [];
+duration_blue_allSubj = [];
+
+for subj = 1:numel(data_dir)
+% for subj = subject:subject
 
     duration_binoriv = 0;
     switch_red = 0;
@@ -243,6 +246,10 @@ for subj = subject:subject
                 % Report blue -> red
                 if all_subj_button_switch(sample) == 1                    
                     onset_label = sample;
+                    if all_subj_stimulus_label(onset_label) ~= 2 % Only successful for phys
+                        continue
+                    end
+                        
                     try
                         offset_label = find(all_subj_button_switch == -1 | all_subj_button_switch == -3); % | all_subj_stimulus_label == 4);
                         offset_label = offset_label(offset_label > onset_label);
@@ -264,6 +271,10 @@ for subj = subject:subject
                 % Report red -> blue
                 elseif all_subj_button_switch(sample) == 2                    
                     onset_label = sample;
+                    if all_subj_stimulus_label(onset_label) ~= 3 % Only successful for phys
+                        continue
+                    end
+                    
                     try
                         offset_label = find(all_subj_button_switch == -2 | all_subj_button_switch == -3); % | all_subj_stimulus_label == 4);
                         offset_label = offset_label(offset_label > onset_label);
@@ -318,6 +329,8 @@ for subj = subject:subject
     saveas(gcf,filename)
     filename = [subj_fig_dir '/Percept_duration_histogram_task' num2str(task_number) '.fig'];
     saveas(gcf,filename)
+    duration_red_allSubj = [duration_red_allSubj duration_red];
+    duration_blue_allSubj = [duration_blue_allSubj duration_blue];
 
     
     % Duration of percepts in Phys cond. [all trials]
@@ -341,3 +354,9 @@ for subj = subject:subject
     saveas(gcf,filename)
 
 end
+
+% Duration of percepts in BinoRiv cond. [all trials]
+fprintf('\n[Mean of duration of percept across all subj] \n%.01f sec \n', (sum(duration_red_allSubj)+sum(duration_blue_allSubj))/(numel(duration_red_allSubj)+numel(duration_blue_allSubj)))
+fprintf('\n[Mean of duration of percept for red all subj] \n%.01f sec \n', sum(duration_red_allSubj)/numel(duration_red_allSubj))
+fprintf('\n[Mean of duration of percept for blue all subj] \n%.01f sec \n', sum(duration_blue_allSubj)/numel(duration_blue_allSubj))
+
