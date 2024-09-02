@@ -1,5 +1,11 @@
 % Author: Ryo Segawa (whizznihil.kid@gmail.com)
-function analysis_human_perceptChange_rm2wayANOVA()
+% Contributor: Ege Kingir (ege.kingir@med.uni-goettingen.de)
+
+%% CONTENT %%
+%%% 1) Performs the statistical tests to compare median PSLs and peak PSL probabilities across tasks.
+%%% 2) Graphs the outputs of these tests.
+
+%% prep
 
 clear all
 close all
@@ -8,674 +14,723 @@ trial_count = 8;
 fig_dir = ['figures'];
 mkdir(fig_dir)
 
-subj_num = 0;
+subj_num_medians = 0;
 table_count_switchEffect = 0;
 table_count_FPjEffect = 0;
 table_count_SacEffect = 0;
 table_count_interaction = 0;
 
-data_dir_task1 = dir('Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task1');
+data_dir_task1 = dir('S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\open_resource\data_task1');
 data_dir_task1 = data_dir_task1(~cellfun(@(x) any(regexp(x, '^\.+$')), {data_dir_task1.name})); % avoid '.' and '..'
+
+%% Load the required median data (binoriv and phys): loads both the "completed" perceptual switch data, and "combined" changes in perception!
+% ALSO loads the peak points on the PSL histograms from each individual in each task.
+
+% Load Task 1 meanMedians
+medianDir = 'S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\analysis_human\statsSummary\task1\meanMedians';
+cd(medianDir);
+load('meanMedians_trueSwitch');
+binoriv_timingsTrue_task1 = taskAsummary.taskA_binoriv_rel_medians;
+phys_timingsTrue_task1 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('meanMedians_allChanges');
+binoriv_timingsAll_task1 = taskAsummary.taskA_binoriv_rel_medians;
+binoriv_timingsAllFirst_task1 = taskAsummary.taskA_binoriv_first_medians;
+% phys_timingsAll_task1 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('individualHistogramPeaks_allChanges_resolution0.25');
+peakTimes_task1 = taskApeaks.taskA_peakTime;
+clear taskApeaks allSubj_x allSubj_f resolution
+
+% Load Task 2 meanMedians
+medianDir = 'S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\analysis_human\statsSummary\task2\meanMedians';
+cd(medianDir);
+load('meanMedians_trueSwitch.mat');
+binoriv_timingsTrue_task2 = taskAsummary.taskA_binoriv_rel_medians;
+phys_timingsTrue_task2 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('meanMedians_allChanges');
+binoriv_timingsAll_task2 = taskAsummary.taskA_binoriv_rel_medians;
+binoriv_timingsAllFirst_task2 = taskAsummary.taskA_binoriv_first_medians;
+% phys_timingsAll_task2 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('individualHistogramPeaks_allChanges_resolution0.25');
+peakTimes_task2 = taskApeaks.taskA_peakTime;
+clear taskApeaks allSubj_x allSubj_f resolution
+
+% Load Task 3 meanMedians
+medianDir = 'S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\analysis_human\statsSummary\task3\meanMedians';
+cd(medianDir);
+load('meanMedians_trueSwitch');
+binoriv_timingsTrue_task3 = taskAsummary.taskA_binoriv_rel_medians;
+phys_timingsTrue_task3 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('meanMedians_allChanges');
+binoriv_timingsAll_task3 = taskAsummary.taskA_binoriv_rel_medians;
+binoriv_timingsAllFirst_task3 = taskAsummary.taskA_binoriv_first_medians;
+% phys_timingsAll_task3 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('individualHistogramPeaks_allChanges_resolution0.25');
+peakTimes_task3 = taskApeaks.taskA_peakTime;
+clear taskApeaks allSubj_x allSubj_f resolution
+
+% Load Task 4 meanMedians
+medianDir = 'S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\analysis_human\statsSummary\task4\meanMedians';
+cd(medianDir);
+load('meanMedians_trueSwitch');
+binoriv_timingsTrue_task4 = taskAsummary.taskA_binoriv_rel_medians;
+phys_timingsTrue_task4 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('meanMedians_allChanges');
+binoriv_timingsAll_task4 = taskAsummary.taskA_binoriv_rel_medians;
+binoriv_timingsAllFirst_task4 = taskAsummary.taskA_binoriv_first_medians;
+% phys_timingsAll_task4 = taskAsummary.taskA_phys_rel_medians;
+clear taskAsummary
+load('individualHistogramPeaks_allChanges_resolution0.25');
+peakTimes_task4 = taskApeaks.taskA_peakTime;
+clear taskApeaks allSubj_x allSubj_f resolution
+
+
 for subj = 1:numel(data_dir_task1)
-%     mkdir([fig_dir '/' data_dir_task1(subj).name])
-%     subj_fig_dir = ([fig_dir '/' data_dir_task1(subj).name]);
-    
-    %% Extract timings of perceptual change
-    % task 1
-    task_psuedoChopping = false;
-    subj_dir_task1 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task1/' data_dir_task1(subj).name '/*.mat']);
-    for file = 1:numel(subj_dir_task1)
-        data_task1 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task1/' data_dir_task1(subj).name '/' subj_dir_task1(file).name]);
-                
-        [binoriv_timing_task1_ins, phys_timing_task1_ins, binoriv_timing_task1_rel, phys_timing_task1_rel] = extract_buttonPress(1,data_task1,task_psuedoChopping);
-    end
-    
-    if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name])
-        continue
-    end
-    % task 2
-    task_psuedoChopping = true;
-    subj_dir_task2 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name '/*.mat']);
-    for file = 1:numel(subj_dir_task2)
-        data_task2 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task2/' data_dir_task1(subj).name '/' subj_dir_task2(file).name]);
-        
-        [binoriv_timing_task2_ins, phys_timing_task2_ins, binoriv_timing_task2_rel, phys_timing_task2_rel] = extract_buttonPress(2,data_task2,task_psuedoChopping);
-    end
-    
-    % task 3
-    task_psuedoChopping = false;
-    if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task3/' data_dir_task1(subj).name])
-        continue
-    end
-    subj_dir_task3 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task3/' data_dir_task1(subj).name '/*.mat']);
-    for file = 1:numel(subj_dir_task3)
-        data_task3 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task3/' data_dir_task1(subj).name '/' subj_dir_task3(file).name]);
-        
-        [binoriv_timing_task3_ins, phys_timing_task3_ins, binoriv_timing_task3_rel, phys_timing_task3_rel] = extract_buttonPress(3,data_task3,task_psuedoChopping);
-    end
-    
-    % task 4
-    task_psuedoChopping = false;
-    if ~exist(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task4/' data_dir_task1(subj).name])
-        continue
-    end
-    subj_dir_task4 = dir(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task4/' data_dir_task1(subj).name '/*.mat']);
-    for file = 1:numel(subj_dir_task4)
-        data_task4 = load(['Y:\Projects\Binocular_rivalry\human_experiment\open_resource/data_task4/' data_dir_task1(subj).name '/' subj_dir_task4(file).name]);
-        
-        [binoriv_timing_task4_ins, phys_timing_task4_ins, binoriv_timing_task4_rel, phys_timing_task4_rel] = extract_buttonPress(4,data_task4,task_psuedoChopping);
-    end
+
     
     %% data store
-    subj_num = subj_num + 1;
+    subj_num_medians = subj_num_medians + 1;
 
     % Switch effect
     table_count_switchEffect = table_count_switchEffect + 1;
-    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task1_ins),'PCT_rel_median', median(binoriv_timing_task1_rel)); % PCT: Percept Changed Timing
+    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task1(subj),'PCT_rel_comb',binoriv_timingsAll_task1(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task1(subj),'PCT_peakComb',peakTimes_task1(subj)); % PCT: Percept Changed Timing
+%     table_count_switchEffect = table_count_switchEffect + 1;
+%     preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task1(subj)); % PCT: Percept Changed Timing
     table_count_switchEffect = table_count_switchEffect + 1;
-    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 1,'PCT_ins_median', median(phys_timing_task1_ins),'PCT_rel_median', median(phys_timing_task1_rel)); % PCT: Percept Changed Timing
-    table_count_switchEffect = table_count_switchEffect + 1;
-    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task2_ins),'PCT_rel_median', median(binoriv_timing_task2_rel)); 
-    table_count_switchEffect = table_count_switchEffect + 1;
-    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task2_ins),'PCT_rel_median', median(phys_timing_task2_rel)); 
+    preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task2(subj),'PCT_rel_comb',binoriv_timingsAll_task2(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task2(subj),'PCT_peakComb',peakTimes_task2(subj)); 
+%     table_count_switchEffect = table_count_switchEffect + 1;
+%     preprocessedData_switchEffect(table_count_switchEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task2(subj)); 
 
     % FPj effect
     table_count_FPjEffect = table_count_FPjEffect + 1;
-    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task2_ins),'PCT_rel_median', median(binoriv_timing_task2_rel));
+    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task3(subj),'PCT_rel_comb',binoriv_timingsAll_task3(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task3(subj),'PCT_peakComb',peakTimes_task3(subj)); 
+%     table_count_FPjEffect = table_count_FPjEffect + 1;
+%     preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task3(subj));
     table_count_FPjEffect = table_count_FPjEffect + 1;
-    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task2_ins),'PCT_rel_median', median(phys_timing_task2_rel));
-    table_count_FPjEffect = table_count_FPjEffect + 1;
-    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task3_ins),'PCT_rel_median', median(binoriv_timing_task3_rel)); 
-    table_count_FPjEffect = table_count_FPjEffect + 1;
-    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 1,'PCT_ins_median', median(phys_timing_task3_ins),'PCT_rel_median', median(phys_timing_task3_rel));
+    preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task2(subj),'PCT_rel_comb',binoriv_timingsAll_task2(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task2(subj),'PCT_peakComb',peakTimes_task2(subj));
+%     table_count_FPjEffect = table_count_FPjEffect + 1;
+%     preprocessedData_FPjEffect(table_count_FPjEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task2(subj));
+    
     
     % Saccade effect
     table_count_SacEffect = table_count_SacEffect + 1;
-    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task2_ins),'PCT_rel_median', median(binoriv_timing_task2_rel));
+    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task4(subj),'PCT_rel_comb',binoriv_timingsAll_task4(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task4(subj),'PCT_peakComb',peakTimes_task4(subj));
+%     table_count_SacEffect = table_count_SacEffect + 1;
+%     preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task4(subj));
     table_count_SacEffect = table_count_SacEffect + 1;
-    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task2_ins),'PCT_rel_median', median(phys_timing_task2_rel));
-    table_count_SacEffect = table_count_SacEffect + 1;
-    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task4_ins),'PCT_rel_median', median(binoriv_timing_task4_rel));
-    table_count_SacEffect = table_count_SacEffect + 1;
-    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task4_ins),'PCT_rel_median', median(phys_timing_task4_rel));
+    preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task2(subj),'PCT_rel_comb',binoriv_timingsAll_task2(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task2(subj),'PCT_peakComb',peakTimes_task2(subj));
+%     table_count_SacEffect = table_count_SacEffect + 1;
+%     preprocessedData_SacEffect(table_count_SacEffect,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task2(subj));
+    
     
     % Interaction
     table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task1_ins),'PCT_rel_median', median(binoriv_timing_task1_rel)); 
+    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task1(subj),'PCT_rel_comb',binoriv_timingsAll_task1(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task1(subj),'PCT_peakComb',peakTimes_task1(subj)); 
+%     table_count_interaction = table_count_interaction + 1;
+%     preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task1(subj));
     table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 1, 'WithSaccade', 1, 'WithFPj', 1, 'Condition', 1,'PCT_ins_median', median(phys_timing_task1_ins),'PCT_rel_median', median(phys_timing_task1_rel));
+    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task2(subj),'PCT_rel_comb',binoriv_timingsAll_task2(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task2(subj),'PCT_peakComb',peakTimes_task2(subj));
+%     table_count_interaction = table_count_interaction + 1;
+%     preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task2(subj));
     table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task2_ins),'PCT_rel_median', median(binoriv_timing_task2_rel));
+    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task3(subj),'PCT_rel_comb',binoriv_timingsAll_task3(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task3(subj),'PCT_peakComb',peakTimes_task3(subj)); 
+%     table_count_interaction = table_count_interaction + 1;
+%     preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task3(subj));
     table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 2, 'WithSaccade', 0, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task2_ins),'PCT_rel_median', median(phys_timing_task2_rel));
-    table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task3_ins),'PCT_rel_median', median(binoriv_timing_task3_rel)); 
-    table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 3, 'WithSaccade', 0, 'WithFPj', 1, 'Condition', 1,'PCT_ins_median', median(phys_timing_task3_ins),'PCT_rel_median', median(phys_timing_task3_rel));
-    table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 0,'PCT_ins_median', median(binoriv_timing_task4_ins),'PCT_rel_median', median(binoriv_timing_task4_rel));
-    table_count_interaction = table_count_interaction + 1;
-    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num,...
-        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 1,'PCT_ins_median', median(phys_timing_task4_ins),'PCT_rel_median', median(phys_timing_task4_rel));
+    preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+        'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 0,'PCT_rel_true', binoriv_timingsTrue_task4(subj),'PCT_rel_comb',binoriv_timingsAll_task4(subj),...
+        'PCT_first_comb',binoriv_timingsAllFirst_task4(subj),'PCT_peakComb',peakTimes_task4(subj));
+%     table_count_interaction = table_count_interaction + 1;
+%     preprocessedData_interaction(table_count_interaction,:) = struct('Individual', data_dir_task1(subj).name, 'SubjectID', subj_num_medians,...
+%         'Task', 4, 'WithSaccade', 1, 'WithFPj', 0, 'Condition', 1,'PCT_rel_true', phys_timingsTrue_task4(subj));
             
-end
-
-%% Outlier exclusion 
-% exclude subjects who have a RT median of between-subject mean + 3*std or more in task 2
-exclusion = true;
-if exclusion
-    indicesToDelete = find([preprocessedData_interaction.Task]~=2 | [preprocessedData_interaction.Condition]==0);
-    preprocessedData_task2 = preprocessedData_interaction;
-    preprocessedData_task2(indicesToDelete) = [];
-    preprocessedData_task2 = struct2table(preprocessedData_task2);
-    
-    between_subj_ins_mean = mean(preprocessedData_task2.PCT_ins_median);
-    between_subj_rel_mean = mean(preprocessedData_task2.PCT_rel_median);
-    between_subj_ins_std = std(preprocessedData_task2.PCT_ins_median);
-    between_subj_rel_std  = std(preprocessedData_task2.PCT_rel_median);
-    threshold_pos_ins = between_subj_ins_mean + 3*between_subj_ins_std;
-    threshold_neg_ins = between_subj_ins_mean - 3*between_subj_ins_std;
-    threshold_pos_rel = between_subj_rel_mean + 3*between_subj_rel_std;
-    threshold_neg_rel = between_subj_rel_mean - 3*between_subj_rel_std;
-    
-    outlierSubj_ID = preprocessedData_task2.SubjectID(find(preprocessedData_task2.PCT_ins_median>threshold_pos_ins | preprocessedData_task2.PCT_ins_median<threshold_neg_ins));
-    preprocessedData_switchEffect(find([preprocessedData_switchEffect.SubjectID]==outlierSubj_ID)) = [];
-    preprocessedData_FPjEffect(find([preprocessedData_FPjEffect.SubjectID]==outlierSubj_ID)) = [];
-    preprocessedData_SacEffect(find([preprocessedData_SacEffect.SubjectID]==outlierSubj_ID)) = [];
-    preprocessedData_interaction(find([preprocessedData_interaction.SubjectID]==outlierSubj_ID)) = [];
 end
 
 
 %% Two-way repeated-measures ANOVA
 % data cleaning
-preprocessedData_switchEffect_table=struct2table(preprocessedData_switchEffect);
-% preprocessedData_switchEffect_table.WithSaccade = categorical(preprocessedData_switchEffect_table.WithSaccade);
-% preprocessedData_switchEffect_table.WithFPj = categorical(preprocessedData_switchEffect_table.WithFPj);
-% preprocessedData_switchEffect_table.Task = categorical(preprocessedData_switchEffect_table.Task);
-% preprocessedData_switchEffect_table.SubjectID = categorical(preprocessedData_switchEffect_table.SubjectID);
-preprocessedData_switchEffect_table.PCT_ins_median = double(preprocessedData_switchEffect_table.PCT_ins_median);
-preprocessedData_switchEffect_table.PCT_rel_median = double(preprocessedData_switchEffect_table.PCT_rel_median);
-rowsToRemove = strcmp(preprocessedData_switchEffect_table.Individual, 'Annalena');
-preprocessedData_switchEffect_table(rowsToRemove, :) = [];
-
-preprocessedData_FPjEffect_table=struct2table(preprocessedData_FPjEffect);
-% preprocessedData_FPjEffect_table.WithSaccade = categorical(preprocessedData_FPjEffect_table.WithSaccade);
-% preprocessedData_FPjEffect_table.WithFPj = categorical(preprocessedData_FPjEffect_table.WithFPj);
-% preprocessedData_FPjEffect_table.Task = categorical(preprocessedData_FPjEffect_table.Task);
-% preprocessedData_FPjEffect_table.SubjectID = categorical(preprocessedData_FPjEffect_table.SubjectID);
-preprocessedData_FPjEffect_table.PCT_ins_median = double(preprocessedData_FPjEffect_table.PCT_ins_median);
-preprocessedData_FPjEffect_table.PCT_rel_median = double(preprocessedData_FPjEffect_table.PCT_rel_median);
-
-preprocessedData_SacEffect_table=struct2table(preprocessedData_SacEffect);
-% preprocessedData_SacEffect_table.WithSaccade = categorical(preprocessedData_SacEffect_table.WithSaccade);
-% preprocessedData_SacEffect_table.WithFPj = categorical(preprocessedData_SacEffect_table.WithFPj);
-% preprocessedData_SacEffect_table.Task = categorical(preprocessedData_SacEffect_table.Task);
-% preprocessedData_SacEffect_table.SubjectID = categorical(preprocessedData_SacEffect_table.SubjectID);
-preprocessedData_SacEffect_table.PCT_ins_median = double(preprocessedData_SacEffect_table.PCT_ins_median);
-preprocessedData_SacEffect_table.PCT_rel_median = double(preprocessedData_SacEffect_table.PCT_rel_median);
-
 preprocessedData_interaction_table=struct2table(preprocessedData_interaction);
-% preprocessedData_interaction_table.WithSaccade = categorical(preprocessedData_interaction_table.WithSaccade);
-% preprocessedData_interaction_table.WithFPj = categorical(preprocessedData_interaction_table.WithFPj);
-% preprocessedData_interaction_table.Task = categorical(preprocessedData_interaction_table.Task);
-% preprocessedData_interaction_table.SubjectID = categorical(preprocessedData_interaction_table.SubjectID);
-preprocessedData_interaction_table.PCT_ins_median = double(preprocessedData_interaction_table.PCT_ins_median);
-preprocessedData_interaction_table.PCT_rel_median = double(preprocessedData_interaction_table.PCT_rel_median);
-rowsToRemove = strcmp(preprocessedData_interaction_table.Individual, 'Annalena') & preprocessedData_interaction_table.Task==1;
-preprocessedData_interaction_table(rowsToRemove, :) = [];
+preprocessedData_interaction_table.WithSaccade = categorical(preprocessedData_interaction_table.WithSaccade);
+preprocessedData_interaction_table.WithFPj = categorical(preprocessedData_interaction_table.WithFPj);
+preprocessedData_interaction_table.Task = categorical(preprocessedData_interaction_table.Task);
+preprocessedData_interaction_table.SubjectID = categorical(preprocessedData_interaction_table.SubjectID);
+% preprocessedData_interaction_table.PCT_ins_median = double(preprocessedData_interaction_table.PCT_ins_median);
+preprocessedData_interaction_table.PCT_rel_true = double(preprocessedData_interaction_table.PCT_rel_true);
+preprocessedData_interaction_table.PCT_rel_comb = double(preprocessedData_interaction_table.PCT_rel_comb);
+preprocessedData_interaction_table.PCT_first_comb = double(preprocessedData_interaction_table.PCT_first_comb);
+preprocessedData_interaction_table.PCT_peakComb = double(preprocessedData_interaction_table.PCT_peakComb);
 
-% Effect of percept switch after FPj [insertion]
-stats = rm_anova2(preprocessedData_switchEffect_table.PCT_ins_median,...
-    preprocessedData_switchEffect_table.SubjectID, ...
-    preprocessedData_switchEffect_table.Task,...
-    preprocessedData_switchEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('Effect of percept switch after FPj [insertion]:')
-disp(stats)
-
-% Effect of percept switch after FPj [release]
-stats = rm_anova2(preprocessedData_switchEffect_table.PCT_rel_median,...
-    preprocessedData_switchEffect_table.SubjectID, ...
-    preprocessedData_switchEffect_table.Task,...
-    preprocessedData_switchEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('Effect of percept switch after FPj [release]:')
-disp(stats)
-
-% FPj effect [insertion]
-stats = rm_anova2(preprocessedData_FPjEffect_table.PCT_ins_median,...
-    preprocessedData_FPjEffect_table.SubjectID, ...
-    preprocessedData_FPjEffect_table.Task,...
-    preprocessedData_FPjEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('FPj effect [insertion]:')
-disp(stats)
-
-% FPj effect [release]
-stats = rm_anova2(preprocessedData_FPjEffect_table.PCT_rel_median,...
-    preprocessedData_FPjEffect_table.SubjectID, ...
-    preprocessedData_FPjEffect_table.Task,...
-    preprocessedData_FPjEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('FPj effect [release]:')
-disp(stats)
-
-% Saccade effect [insertion]
-stats = rm_anova2(preprocessedData_SacEffect_table.PCT_ins_median,...
-    preprocessedData_SacEffect_table.SubjectID, ...
-    preprocessedData_SacEffect_table.Task,...
-    preprocessedData_SacEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('Saccade effect [insertion]:')
-disp(stats)
-
-% Saccade effect [release]
-stats = rm_anova2(preprocessedData_SacEffect_table.PCT_rel_median,...
-    preprocessedData_SacEffect_table.SubjectID, ...
-    preprocessedData_SacEffect_table.Task,...
-    preprocessedData_SacEffect_table.Condition,...
-    {'Task', 'Condition'});
-disp('Saccade effect [release]:')
-disp(stats)
-
-% Saccade+FPj effect [insertion]
-stats = rm_anova2(preprocessedData_interaction_table.PCT_ins_median,...
-    preprocessedData_interaction_table.SubjectID, ...
-    preprocessedData_interaction_table.Task,...
-    preprocessedData_interaction_table.Condition,...
-    {'Task', 'Condition'});
-disp('Saccade+FPj effect [insertion]:')
-disp(stats)
-
-% Saccade+FPj effect [release]
-stats = rm_anova2(preprocessedData_interaction_table.PCT_rel_median,...
-    preprocessedData_interaction_table.SubjectID, ...
-    preprocessedData_interaction_table.Task,...
-    preprocessedData_interaction_table.Condition,...
-    {'Task', 'Condition'});
-disp('Saccade+FPj effect [release]:')
-disp(stats)
+% % rowsToRemove = strcmp(preprocessedData_interaction_table.Individual, 'Annalena') & preprocessedData_interaction_table.Task==1;
+preprocessedData_interaction_table(preprocessedData_interaction_table.SubjectID=="3",:) = [];
+% preprocessedData_interaction_table(preprocessedData_interaction_table.Condition==1,:) = [];
 
 
+%% Non-Parametric Friedman's test (NP counterpart of two-way rm anova) to evaluate the main effects of performing a saccade and presence of fixation point jumps separately on perceptual switch timings:
+addpath S:\KNEU\KNEUR-Projects\Projects\Sukanya-Backup\ViolinPlot\dabarplot
+cd('S:\KNEU\KNEUR-Projects\Projects\Ege-Backup\in2PB_human_experiment\analysis_human\figures');
 
-function [binoriv_timing_task_ins, phys_timing_task_ins, binoriv_timing_task_rel, phys_timing_task_rel] = extract_buttonPress(task_number,data,task_psuedoChopping)
-binoriv_timing_task_ins = [];
-phys_timing_task_ins = [];
-binoriv_timing_task_rel = [];
-phys_timing_task_rel = [];
-%% Task 1 or 3 (or 2)
-if task_number == 2 && task_psuedoChopping
-    for trl = 1:numel(data.trial)
-        fix_loc_label = randi([1 4],1,1);
-        if fix_loc_label == 1
-            data.trial(trl).eye.fix.x.red = -1;
-            data.trial(trl).eye.fix.y.red = -1;
-        elseif fix_loc_label == 2
-            data.trial(trl).eye.fix.x.red = -2;
-            data.trial(trl).eye.fix.y.red = -2;
-        elseif fix_loc_label == 3
-            data.trial(trl).eye.fix.x.red = -3;
-            data.trial(trl).eye.fix.y.red = -3;
-        elseif fix_loc_label == 4
-            data.trial(trl).eye.fix.x.red = -4;
-            data.trial(trl).eye.fix.y.red = -4;
-        end
-    end
-end
-if task_number == 1 || task_number == 3 || task_psuedoChopping
-    %% Button insertion
-%         for trl = 1:numel(data.trial)-1
-    for trl = 18:numel(data.trial)-1
-        % Binoriv 
-        if data.trial(trl).stimulus == 4
-            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
-                continue
-            end
-            for loop = 1:7
-                if data.trial(trl-loop).stimulus ~= 4
-                    for sample = 1:data.trial(trl).counter-1
-                        if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-    %                         end
-                            break
-                        elseif data.trial(trl).repo_blue(sample) == 0 && data.trial(trl).repo_blue(sample+1) == 1
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-    %                         end
-                            break
-                        end
-                    end      
-                    break
-                end
+%%% TRUE perceptual switches:
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Saccades
+table2testSacT = [[binoriv_timingsTrue_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsTrue_task3(~isnan(binoriv_timingsTrue_task2))] [binoriv_timingsTrue_task4(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsTrue_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pSacT, tblSacT, statsSacT] = friedman(table2testSacT,17);
 
-                if data.trial(trl-loop).eye.fix.x.red == data.trial(trl).eye.fix.x.red &&...
-                    data.trial(trl-loop).eye.fix.y.red == data.trial(trl).eye.fix.y.red
-%                             if any(find(data.trial(trl-loop).repo_red)) == 1 && any(find(data.trial(trl-loop).repo_red)) == 0
-%                                 break
-%                             elseif any(find(data.trial(trl-loop).repo_blue)) == 1 && any(find(data.trial(trl-loop).repo_blue)) == 0
-%                                 break
-                    if any(find(data.trial(trl-loop).repo_red)) == 1 && any(find(data.trial(trl-loop).repo_blue)) == 1
-                        break
-                    elseif any(find(data.trial(trl-loop).repo_red)) == 0 && any(find(data.trial(trl-loop).repo_red)) == 1 ||...
-                            any(find(data.trial(trl-loop).repo_blue)) == 0 && any(find(data.trial(trl-loop).repo_blue)) == 1 
-                        break
-                    else
-                        for sample = 1:data.trial(trl).counter-1
-                            if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
-                                switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl-loop).tSample_from_time_start(1);
-        %                         if switch_timing <= 5
-                                    binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-        %                         end
-                                break
-                            elseif data.trial(trl).repo_blue(sample) == 0 && data.trial(trl).repo_blue(sample+1) == 1
-                                switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl-loop).tSample_from_time_start(1);
-        %                         if switch_timing <= 5
-                                    binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-        %                         end
-                                break
-                            end
-                        end        
-                    end
-                    break
-                else
-                    for sample = 1:data.trial(trl).counter-1
-                        if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-    %                         end
-                            break
-                        elseif data.trial(trl).repo_blue(sample) == 0 && data.trial(trl).repo_blue(sample+1) == 1
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-    %                         end
-                            break
-                        end
-                    end
-                    break
-                end
-            end
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Fixation Point Jumps
+table2testFPjT = [[binoriv_timingsTrue_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsTrue_task4(~isnan(binoriv_timingsTrue_task2))] [binoriv_timingsTrue_task3(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsTrue_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pFPjT, tblFPjT, statsFPjT] = friedman(table2testFPjT,17);
 
-        % Phys 
-        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 2
-                    min_trl = trl-loop + 1;
-                end
-            end
+%%%% Figures for saccade and FPj effects: TRUE switches %%%%
+%%% Raincloud to compare saccade to no-saccade [TRUE]
+addpath S:\KNEU\KNEUR-Projects\Projects\Sukanya-Backup\ViolinPlot\raincloudPlots
 
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_red(sample) == 0 && data.trial(cont_trl).repo_red(sample+1) == 1
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end                     
+var1=table2testSacT(:,1); %no-saccade
+var2=table2testSacT(:,2); %saccade
 
-        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 3
-                    min_trl = trl-loop + 1;
-                end
-            end
+var12 = [{var1}; {var2}];
 
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_blue(sample) == 0 && data.trial(cont_trl).repo_blue(sample+1) == 1
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end
 
-        end        
-    end
+figure
+colors = [0.6 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
 
-    %% Button release
-%         for trl = 1:numel(data.trial)-1
-    for trl = 18:numel(data.trial)-1
-        % Binoriv 
-        if data.trial(trl).stimulus == 4
-            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
-                continue
-            end
-            for loop = 1:7
-                if data.trial(trl-loop).stimulus ~= 4
-                    for sample = 1:data.trial(trl).counter-1
-                        if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-    %                         end
-                            break
-                        elseif data.trial(trl).repo_blue(sample) == 1 && data.trial(trl).repo_blue(sample+1) == 0
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-    %                         end
-                            break
-                        end
-                    end      
-                    break
-                end
+h1.p{2,1}.FaceColor=[0 0 0.6]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0 0 0.6]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0 0 0.6];
+yticklabels({'Saccade','NO Saccade'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
 
-                if data.trial(trl-loop).eye.fix.x.red == data.trial(trl).eye.fix.x.red &&...
-                    data.trial(trl-loop).eye.fix.y.red == data.trial(trl).eye.fix.y.red
-                    if any(find(data.trial(trl-loop).repo_red)) == 1 && any(find(data.trial(trl-loop).repo_red)) == 0
-                        break
-                    elseif any(find(data.trial(trl-loop).repo_blue)) == 1 && any(find(data.trial(trl-loop).repo_blue)) == 0
-                        break
-                    elseif any(find(data.trial(trl-loop).repo_red)) == 1 && any(find(data.trial(trl-loop).repo_blue)) == 1
-                        break
-                    elseif any(find(data.trial(trl-loop).repo_red)) == 0 && any(find(data.trial(trl-loop).repo_red)) == 1 ||...
-                            any(find(data.trial(trl-loop).repo_blue)) == 0 && any(find(data.trial(trl-loop).repo_blue)) == 1 
-                        break
-                    else
-                        for sample = 1:data.trial(trl).counter-1
-                            if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
-                                switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl-loop).tSample_from_time_start(1);
-        %                         if switch_timing <= 5
-                                    binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-        %                         end
-                                break
-                            elseif data.trial(trl).repo_blue(sample) == 1 && data.trial(trl).repo_blue(sample+1) == 0
-                                switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl-loop).tSample_from_time_start(1);
-        %                         if switch_timing <= 5
-                                    binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-        %                         end
-                                break
-                            end
-                        end        
-                    end
-                    break
-                else
-                    for sample = 1:data.trial(trl).counter-1
-                        if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-    %                         end
-                            break
-                        elseif data.trial(trl).repo_blue(sample) == 1 && data.trial(trl).repo_blue(sample+1) == 0
-                            switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-    %                         if switch_timing <= 5
-                                binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-    %                         end
-                            break
-                        end
-                    end
-                    break
-                end
-            end
-
-        % Phys
-        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 2
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_blue(sample) == 1 && data.trial(cont_trl).repo_blue(sample+1) == 0
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end                     
-
-        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 3
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_red(sample) == 1 && data.trial(cont_trl).repo_red(sample+1) == 0
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end
-        end
-    end
-elseif task_number == 2 || task_number == 4
-    if task_number == 2 && task_psuedoChopping
-        return
-    end
-    %% Button insertion
-%             for trl = 1:numel(data.trial)-1
-    for trl = 18:numel(data.trial)-1
-        % Binoriv 
-        if data.trial(trl).stimulus == 4
-            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
-                continue
-            end
-            for sample = 1:data.trial(trl).counter-1
-                if data.trial(trl).repo_red(sample) == 0 && data.trial(trl).repo_red(sample+1) == 1
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-%                         end
-                    break
-                elseif data.trial(trl).repo_blue(sample) == 0 && data.trial(trl).repo_blue(sample+1) == 1
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        binoriv_timing_task_ins = [binoriv_timing_task_ins switch_timing];
-%                         end
-                    break
-                end
-            end      
-        % Phys 
-        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 2
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_red(sample) == 0 && data.trial(cont_trl).repo_red(sample+1) == 1
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end                     
-
-        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 3
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_blue(sample) == 0 && data.trial(cont_trl).repo_blue(sample+1) == 1
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_ins = [phys_timing_task_ins switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end
-        end    
-    end
-
-     %% Button release
-%             for trl = 1:numel(data.trial)-1
-    for trl = 18:numel(data.trial)-1
-        % Binoriv 
-        if data.trial(trl).stimulus == 4
-            if data.trial(trl-1).stimulus ~= 4 % First trial in blocks in binoriv should be removed
-                continue
-            end
-            for sample = 1:data.trial(trl).counter-1
-                if data.trial(trl).repo_red(sample) == 1 && data.trial(trl).repo_red(sample+1) == 0
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-%                         end
-                    break
-                elseif data.trial(trl).repo_blue(sample) == 1 && data.trial(trl).repo_blue(sample+1) == 0
-                    switch_timing = data.trial(trl).tSample_from_time_start(sample) - data.trial(trl).tSample_from_time_start(1);
-%                         if switch_timing <= 5
-                        binoriv_timing_task_rel = [binoriv_timing_task_rel switch_timing];
-%                         end
-                    break
-                end
-            end    
-        % Phys
-        elseif data.trial(trl).stimulus == 2 && data.trial(trl+1).stimulus ~= 2
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 2
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_blue(sample) == 1 && data.trial(cont_trl).repo_blue(sample+1) == 0
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end                     
-
-        elseif data.trial(trl).stimulus == 3 && data.trial(trl+1).stimulus ~= 3
-            for loop = 1:4
-                if data.trial(trl-loop).stimulus ~= 3
-                    min_trl = trl-loop + 1;
-                end
-            end
-
-            percept_change = false;
-            for cont_trl = min_trl:trl
-                for sample = 1:data.trial(cont_trl).counter-1
-                    if data.trial(cont_trl).repo_red(sample) == 1 && data.trial(cont_trl).repo_red(sample+1) == 0
-                        switch_timing = data.trial(cont_trl).tSample_from_time_start(sample) - data.trial(cont_trl).tSample_from_time_start(1);
-                        phys_timing_task_rel = [phys_timing_task_rel switch_timing];
-                        percept_change = true;
-                        break
-                    end
-                end
-                if percept_change; break; end
-            end
-        end
-    end
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
 end
 
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PCT Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Saccades on Completed PSTs'])
+hold off
+filename = ['saccadesTrueSwitch_PSTs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['saccadesTrueSwitch_PSTs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% Raincloud to compare FPj to no FPj [TRUE]
+var1=table2testFPjT(:,1); %no-FPj
+var2=table2testFPjT(:,2); %FPj
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0.6 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
+
+h1.p{2,1}.FaceColor=[0 0 0.6]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0 0 0.6]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0 0 0.6];
+yticklabels({'FPj','NO FPj'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PCT Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Fixation Point Jumps on Completed PSTs'])
+hold off
+filename = ['fpjTrueSwitch_PSTs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['fpjTrueSwitch_PSTs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+
+%%% COMBINED (ALL) perceptual changes:
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Saccades
+table2testSacA = [[binoriv_timingsAll_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAll_task3(~isnan(binoriv_timingsTrue_task2))]...
+    [binoriv_timingsAll_task4(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAll_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pSacA, tblSacA, statsSacA] = friedman(table2testSacA,17);
+
+
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Fixation Point Jumps
+table2testFPjA = [[binoriv_timingsAll_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAll_task4(~isnan(binoriv_timingsTrue_task2))] ...
+    [binoriv_timingsAll_task3(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAll_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pFPjA, tblFPjA, statsFPjA] = friedman(table2testFPjA,17);
+
+%%%% Figures for saccade and FPj effects: COMBINED switches %%%%
+%%% Raincloud to compare saccade to no-saccade [COMBINED]
+
+var1=table2testSacA(:,1); %no-saccade
+var2=table2testSacA(:,2); %saccade
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0.6 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
+
+h1.p{2,1}.FaceColor=[0 0 0.6]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0 0 0.6]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0 0 0.6];
+yticklabels({'Saccade','NO Saccade'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PSL Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Saccades on Combined PSLs'])
+hold off
+filename = ['saccadesCombinedSwitch_PSLs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['saccadesCombinedSwitch_PSLs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% Raincloud to compare FPj to no FPj [COMBINED]
+var1=table2testFPjA(:,1); %no-FPj
+var2=table2testFPjA(:,2); %FPj
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0.6 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
+
+h1.p{2,1}.FaceColor=[0 0 0.6]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0 0 0.6]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0 0 0.6];
+yticklabels({'FPj','NO FPj'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PSL Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of FPj on Combined PSTs'])
+hold off
+filename = ['fpjCombinedSwitch_PSTs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['fpjCombinedSwitch_PSTs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% COMBINED and FIRST perceptual switches
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Saccades
+table2testSacAF = [[binoriv_timingsAllFirst_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAllFirst_task3(~isnan(binoriv_timingsTrue_task2))] ...
+    [binoriv_timingsAllFirst_task4(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAllFirst_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pSacAF, tblSacAF, statsSacAF] = friedman(table2testSacAF,17);
+
+
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Fixation Point Jumps
+table2testFPjAF = [[binoriv_timingsAllFirst_task2(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAllFirst_task4(~isnan(binoriv_timingsTrue_task2))] ...
+    [binoriv_timingsAllFirst_task3(~isnan(binoriv_timingsTrue_task2)); binoriv_timingsAllFirst_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pFPjAF, tblFPjAF, statsFPjAF] = friedman(table2testFPjAF,17);
+
+%%%% Figures for saccade and FPj effects: COMBINED and FIRST switches %%%%
+%%% Raincloud to compare saccade to no-saccade [COMBINED FIRST]
+
+var1=table2testSacAF(:,1); %no-saccade
+var2=table2testSacAF(:,2); %saccade
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
+
+h1.p{2,1}.FaceColor=[0.5 0.5 0.5]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0.5 0.5 0.5]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0.5 0.5 0.5];
+yticklabels({'Saccade','NO Saccade'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PSL Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Saccades on First PSLs'])
+hold off
+filename = ['saccadesCombinedFirstSwitch_PSLs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['saccadesCombinedFirstSwitch_PSLs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% Raincloud to compare FPj to no FPj [COMBINED FIRST]
+var1=table2testFPjAF(:,1); %no-FPj
+var2=table2testFPjAF(:,2); %FPj
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.5);
+
+h1.p{2,1}.FaceColor=[0.5 0.5 0.5]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0.5 0.5 0.5]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0.5 0.5 0.5];
+yticklabels({'FPj','NO FPj'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-0.5 4.3])
+xticks([0.5 1 1.5 2 2.5 3 3.5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('PSL Medians (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Shifting FPs on First PSLs'])
+hold off
+filename = ['fpjCombinedFirstSwitch_PSLs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['fpjCombinedFirstSwitch_PSTLs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% COMBINED perceptual switches: PEAK points in individual histograms
+
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Saccades
+table2testSacAP = [[peakTimes_task2(~isnan(binoriv_timingsTrue_task2)); peakTimes_task3(~isnan(binoriv_timingsTrue_task2))] ...
+    [peakTimes_task4(~isnan(binoriv_timingsTrue_task2)); peakTimes_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pSacAP, tblSacAP, statsSacAP] = friedman(table2testSacAP,17);
+
+
+% Friedman's Non-Parametric Test: Arrange for the Column Effect of Fixation Point Jumps
+table2testFPjAP = [[peakTimes_task2(~isnan(binoriv_timingsTrue_task2)); peakTimes_task4(~isnan(binoriv_timingsTrue_task2))] ...
+    [peakTimes_task3(~isnan(binoriv_timingsTrue_task2)); peakTimes_task1(~isnan(binoriv_timingsTrue_task2))]];
+[pFPjAP, tblFPjAP, statsFPjAP] = friedman(table2testFPjAP,17);
+
+%%% Raincloud to compare saccade to no-saccade [COMBINED PEAK]
+
+var1=table2testSacAP(:,1); %no-saccade
+var2=table2testSacAP(:,2); %saccade
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.1);
+
+h1.p{2,1}.FaceColor=[0.5 0.5 0.5]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0.5 0.5 0.5]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0.5 0.5 0.5];
+yticklabels({'Saccade','NO Saccade'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-1 6.5])
+xticks([0 1 2 3 4 5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('Peak Latencies (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Saccades on Peak Latencies'])
+hold off
+filename = ['saccadesPeakLatency_PSLs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['saccadesPeakLatency_PSLs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%% Raincloud to compare FPj to no FPj [COMBINED FIRST]
+var1=table2testFPjAP(:,1); %no-FPj
+var2=table2testFPjAP(:,2); %FPj
+
+var12 = [{var1}; {var2}];
+
+
+figure
+colors = [0 0 0];
+h1 = rm_raincloud(var12,colors,0,'ks',[],0.1);
+
+h1.p{2,1}.FaceColor=[0.5 0.5 0.5]; %face color for the second patch
+h1.s{2,1}.MarkerFaceColor=[0.5 0.5 0.5]; %marker colors for the second category (Misses)
+h1.l(1,1).Visible="off";
+h1.m(2,1).MarkerFaceColor = [0.5 0.5 0.5];
+yticklabels({'FPj','NO FPj'}) %inverted because of the rm_raincloud function plot orientation!
+hold on
+
+for i=1:size(var12{1, 1},1) % Also match individual data points
+    X = [h1.s{1,1}.XData(1,i) h1.s{2,1}.XData(1,i)];
+    Y = [h1.s{1,1}.YData(1,i) h1.s{2,1}.YData(1,i)];
+    plot(X,Y,"k-");
+end
+
+xlim([-1 6.5])
+xticks([0 1 2 3 4 5])
+set(gca,'FontSize',36,'FontWeight','Bold')
+set(gcf, 'Position', get(0, 'Screensize'));
+xlabel('Peak Latencies (s)') %we need to invert the x and y for all the labels and ticks as well due to rainplots being scripted in a rotated way!
+title(['Effect of Shifting FPs on Peak Latencies'])
+hold off
+filename = ['fpjPeakLatency_PSLs_raincloud.fig'];
+saveas(gcf,filename)
+filename = ['fpjPeakLatency_PSLs_raincloud.tiff'];
+saveas(gcf,filename)
+close;
+
+%%%%%                                               %%%%%
+%%%%% FOR ONE-WAY COMPARISONS ACROSS ALL FOUR TASKS %%%%%
+%%%%%                                               %%%%%
+
+%% TRUE SWITCHES table
+table2plotTrue = [binoriv_timingsTrue_task1(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsTrue_task2(~isnan(binoriv_timingsTrue_task2)) ...
+    binoriv_timingsTrue_task3(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsTrue_task4(~isnan(binoriv_timingsTrue_task2))];
+
+% [h p] = adtest([table2plotTrue(:,1);table2plotTrue(:,2);table2plotTrue(:,3);table2plotTrue(:,4)]) %Anderson-Darling Test for normality of the data as a whole.
+addpath S:\KNEU\KNEUR-Projects\Projects\Sukanya-Backup\ViolinPlot\raincloudPlots
+table2plotAllTasksTrue = reshape(table2plotTrue,size(table2plotTrue,1)*size(table2plotTrue,2),1)
+% Button Release
+figure
+raincloud_plot(table2plotAllTasksTrue,'box_on', 1,'color',[0.5 0.5 0.5]);
+isoutlier(table2plotAllTasksTrue)
+%% Non-Parametric One Way Friedman Across Tasks - TRUE switches
+
+[pT_oneway tblT_oneway statsT_oneway] = friedman(table2plotTrue,1);
+
+if pT_oneway < 0.05 %then go into the post-hoc test, using the stats output as the input for the multcompare function!
+    [cT,mT,hT,gnamesT] = multcompare(statsT_oneway);
+end
+
+% table_rmTrue = array2table(table2plotTrue,'VariableNames',{'Task1','Task2','Task3','Task4'});
+% subjectIDs = (1:18)';
+% subjectIDs(3) = [];
+% table_rmTrue.subjects = subjectIDs;
+% table_rmTrue = movevars(table_rmTrue, "subjects", "Before", "Task1");
+
+
+% rmTrue = fitrm(table_rmTrue,'Task1-Task4 ~ 1', 'WithinDesign', [1 2 3 4]);
+% ranovatblTrue = ranova(rmTrue);
+% disp(ranovatblTrue);
+
+% Bonferroni-corrected paired post-hoc tests to determine task pairs that differ significantly
+% postHocTrue = multcompare(rmTrue, 'Time', 'ComparisonType', 'bonferroni');
+
+
+%% COMBINED SWITCHES
+table2plotComb = [binoriv_timingsAll_task1(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsAll_task2(~isnan(binoriv_timingsTrue_task2)) ...
+    binoriv_timingsAll_task3(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsAll_task4(~isnan(binoriv_timingsTrue_task2))];
+table2plotComb = double(table2plotComb);
+% 
+% [h p] = adtest([table2plotComb(:,1);table2plotComb(:,2);table2plotComb(:,3);table2plotComb(:,4)]) %Anderson-Darling Test for normality of the data as a whole.
+% 
+% table2plotAllTasksComb = reshape(table2plotComb,size(table2plotComb,1)*size(table2plotComb,2),1)
+% % Button Release
+% figure
+% raincloud_plot(table2plotAllTasksComb,'box_on', 1,'color',[0.5 0.5 0.5]);
+% isoutlier(table2plotAllTasksComb)
+
+%% Non-Parametric One Way Friedman Across Tasks - COMBINED switches
+
+[pA_oneway tblA_oneway statsA_oneway] = friedman(table2plotComb,1);
+
+if pA_oneway < 0.05 %then go into the post-hoc test, using the stats output as the input for the multcompare function!
+    [cA,mA,hA,gnamesA] = multcompare(statsA_oneway);
+end
+
+%% COMBINED and FIRST SWITCHES
+table2plotCombFirst = [binoriv_timingsAllFirst_task1(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsAllFirst_task2(~isnan(binoriv_timingsTrue_task2)) ...
+    binoriv_timingsAllFirst_task3(~isnan(binoriv_timingsTrue_task2)) binoriv_timingsAllFirst_task4(~isnan(binoriv_timingsTrue_task2))];
+table2plotCombFirst = double(table2plotCombFirst);
+
+
+%% Non-Parametric One Way Friedman Across Tasks - COMBINED FIRST switches
+% Parametric Across Tasks True Switch Timing Comparisons
+[pAF_oneway tblAF_oneway statsAF_oneway] = friedman(table2plotCombFirst,1);
+
+if pAF_oneway < 0.05 %then go into the post-hoc test, using the stats output as the input for the multcompare function!
+    [cAF,mAF,hAF,gnamesAF] = multcompare(statsAF_oneway);
+end
+
+table_rmCombFirst = array2table(table2plotCombFirst,'VariableNames',{'Task1','Task2','Task3','Task4'});
+
+%% COMBINED SWITCHES - PEAK times on Histograms
+table2plotPeak = [peakTimes_task1(~isnan(binoriv_timingsTrue_task2)) peakTimes_task2(~isnan(binoriv_timingsTrue_task2)) ...
+    peakTimes_task3(~isnan(binoriv_timingsTrue_task2)) peakTimes_task4(~isnan(binoriv_timingsTrue_task2))];
+
+[pAP_oneway tblAP_oneway statsAP_oneway] = friedman(table2plotPeak,1);
+
+if pAP_oneway < 0.05 %then go into the post-hoc test, using the stats output as the input for the multcompare function!
+    [cAP,mAP,hAP,gnamesAP] = multcompare(statsAP_oneway);
+end
+
+%% Bar Graph Plot for True Perceptual Switches
+
+groupColors = [0.3 0.5 0.9; 0.8 0.4 0.4; 0.7 0.4 0.7; 0.5 0.7 0.4];
+cell2plotTrue{1} = table2plotTrue(:,1);
+cell2plotTrue{2} = table2plotTrue(:,2);
+cell2plotTrue{3} = table2plotTrue(:,3);
+cell2plotTrue{4} = table2plotTrue(:,4);
+    
+figure;
+h = dabarplot(cell2plotTrue,'colors',groupColors,'scatter',1,'scattersize',100);
+hold on
+% for i=1:size(table2plotTrue,1) % Also match individual data points
+%     X = [h.sc(1).XData(i) h.sc(2).XData(i) h.sc(3).XData(i) h.sc(4).XData(i)];
+%     Y = [h.sc(1).YData(i) h.sc(2).YData(i) h.sc(3).YData(i) h.sc(4).YData(i)];
+%     plot(X,Y,"k-");
+% end
+yline(2.5,'r--','LineWidth',1.5)
+xticklabels({'Task 1','Task 2','Task 3','Task 4'})
+ylim([0 5])
+title('Median Perceptual Switch (Completed) Timing')
+ylabel('(s)');
+set(gca,'FontSize',48)
+set(gcf, 'Position', get(0, 'Screensize'));
+filename = ['medianTrueSwitch_PSTs_allTasksBarGraph.fig'];
+saveas(gcf,filename)
+filename = ['medianTrueSwitch_PSTs_allTasksBarGraph.tiff'];
+saveas(gcf,filename)
+close;
+
+%% Bar Graph Plot for Combined Perceptual Switches
+cell2plotComb{1} = table2plotComb(:,1);
+cell2plotComb{2} = table2plotComb(:,2);
+cell2plotComb{3} = table2plotComb(:,3);
+cell2plotComb{4} = table2plotComb(:,4);
+
+figure;
+dabarplot(cell2plotComb,'colors',groupColors,'scatter',1,'scattersize',100)
+hold on
+yline(2.5,'r--','LineWidth',1.5)
+xticklabels({'Task 1','Task 2','Task 3','Task 4'})
+ylim([0 5])
+title('Median Perceptual Switch (Combined) Timing')
+ylabel('(s)');
+set(gca,'FontSize',48)
+set(gcf, 'Position', get(0, 'Screensize'));
+filename = ['medianCombined_PSTs_allTasksBarGraph.fig'];
+saveas(gcf,filename)
+filename = ['medianCombined_PSTs_allTasksBarGraph.tiff'];
+saveas(gcf,filename)
+close;
+
+%% Bar Graph for Combined FIRST Perceptual Switches
+cell2plotCombFirst{1} = table2plotCombFirst(:,1);
+cell2plotCombFirst{2} = table2plotCombFirst(:,2);
+cell2plotCombFirst{3} = table2plotCombFirst(:,3);
+cell2plotCombFirst{4} = table2plotCombFirst(:,4);
+
+figure;
+dabarplot(cell2plotCombFirst,'colors',groupColors,'scatter',1,'scattersize',100)
+hold on
+yline(2.5,'r--','LineWidth',1.5)
+xticklabels({'Task 1','Task 2','Task 3','Task 4'})
+ylim([0 5])
+title('Median of First PSLs')
+ylabel('(s)');
+set(gca,'FontSize',48)
+set(gcf, 'Position', get(0, 'Screensize'));
+filename = ['medianCombinedFirst_PSLs_allTasksBarGraph.fig'];
+saveas(gcf,filename)
+filename = ['medianCombinedFirst_PSLs_allTasksBarGraph.tiff'];
+saveas(gcf,filename)
+close;
+
+%% Bar Graph for PEAK points on histograms
+cell2plotPeak{1} = table2plotPeak(:,1);
+cell2plotPeak{2} = table2plotPeak(:,2);
+cell2plotPeak{3} = table2plotPeak(:,3);
+cell2plotPeak{4} = table2plotPeak(:,4);
+
+figure;
+dabarplot(cell2plotPeak,'colors',groupColors,'scatter',1,'scattersize',100)
+hold on
+yline(2.5,'r--','LineWidth',1.5)
+xticklabels({'Task 1','Task 2','Task 3','Task 4'})
+ylim([0 5])
+title('Peak Latencies')
+ylabel('(s)');
+set(gca,'FontSize',48)
+set(gcf, 'Position', get(0, 'Screensize'));
+filename = ['peak_PSLs_allTasksBarGraph.fig'];
+saveas(gcf,filename)
+filename = ['peak_PSLs_allTasksBarGraph.tiff'];
+saveas(gcf,filename)
+close;
+
+%% 
