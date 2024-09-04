@@ -1,6 +1,6 @@
 % Author: Ege Kingir (ege.kingir@med.uni-goettingen.de)
 
-% Analysis for individual peak latencies (the latency bins with highest probability of a perceptual switch in each individual)
+% Plots / visualizations for between-task individual peak latency comparisons.
 
 clear all;clc
 resolution = 0.25; %time difference (s) between bin edges from which we derive the peak latency of perceptual switches in each subject
