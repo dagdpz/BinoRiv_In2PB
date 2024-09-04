@@ -43,10 +43,6 @@ var1 = allTasks_allPeaks{taskA_number, 1}.taskA_peakTime;
 var2 = allTasks_allPeaks{taskB_number, 1}.taskA_peakTime;
 var12 = [{var1}; {var2}];
 
-%check for normality of each sample
-% h_n1 = kstest(var1);
-% h_n2 = kstest(var2);
-
 p = signrank(var1,var2);
 figure
 
